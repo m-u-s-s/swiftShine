@@ -21,7 +21,7 @@ class LimitesJournaliereSeeder extends Seeder
                     'date' => $jours->copy()->addDays($i)->toDateString(),
                 ], [
                     'limite' => rand(2, 4),
-                    'verrouillee_par_admin' => false,
+                    'verrou_admin' => false,
                 ]);
             }
         }

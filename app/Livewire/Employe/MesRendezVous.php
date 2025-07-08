@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Employe;
 
 use App\Models\RendezVous;
 use App\Notifications\StatutRendezVousNotification;
@@ -57,7 +57,7 @@ class MesRendezVous extends Component
             $query->where('status', $this->filtreStatut);
         }
 
-        return view('livewire.mes-rendez-vous', [
+        return view('livewire.employe.mes-rendez-vous', [
             'rendezVous' => $query->orderBy('date', $this->tri)->paginate(5)
         ]);
     }

@@ -31,7 +31,7 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'role' => $input['role'],
-            'tva_number' => $input['role'] === 'societe' ? $input['tva-number'] : null,
+            'tva_number' => $input['role'] === 'societe' ? $input['tva_number'] : null,
         ]);
     }
 }

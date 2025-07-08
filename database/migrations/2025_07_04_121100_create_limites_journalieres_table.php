@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('date');
             $table->unsignedInteger('limite')->default(0);
-            $table->boolean('verrouillee_par_admin')->default(false); // si true, l'employé ne peut plus la modifier
+            $table->boolean('verrou_admin')->default(false); // si true, l'employé ne peut plus la modifier
             $table->timestamps();
 
             $table->unique(['user_id', 'date']);

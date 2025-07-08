@@ -36,7 +36,7 @@
 
         {{-- Autres composants employés --}}
         @livewire('disponibilites-manager')
-        @livewire('mes-rendez-vous')
+        @livewire('employe.mes-rendez-vous')
         @livewire('employe.calendrier-employe')
     </div>
 </x-app-layout>

@@ -53,7 +53,7 @@
         let chartInstance, chartMensuelInstance;
 
         document.addEventListener('livewire:load', () => {
-            chartInstance = new ApexCharts(document.querySelector("#chartRendezVous"), {
+            chartInstance = new ApexCharts(document.querySelector("#chartStats"), {
                 chart: {
                     type: 'donut',
                     height: 300

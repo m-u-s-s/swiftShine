@@ -1,66 +1,54 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Présentation générale
+Ce dépôt correspond à une application Laravel (PHP 8.1) intégrant Jetstream, Livewire et Tailwind. On retrouve les dépendances principales dans le composer.json : Laravel, Livewire, Jetstream…
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Côté JavaScript, la compilation se fait via Vite et Tailwind, avec FullCalendar et ApexCharts pour les interfaces riches
 
-## About Laravel
+Organisation des dossiers
+app/ : logique applicative
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Models/ : classes Eloquent (User, RendezVous, Disponibilite, etc.)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Livewire/ : composants interactifs (dashboards, calendriers…)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Http/ : contrôleurs et middleware (ex. CheckRole)
 
-## Learning Laravel
+Console/Commands/ : commandes artisan personnalisées (vérifications Livewire, génération de disponibilités…)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+resources/ : vues Blade et assets (CSS/JS). Les composants Livewire possèdent leurs templates dans resources/views/livewire.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+routes/ : déclarations de routes (principalement dans web.php).
+Les dashboards sont exposés via des routes Livewire protégées par un middleware de rôle
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+database/ : migrations et seeders définissant la structure (tables rendez_vous, disponibilites, etc.)
 
-## Laravel Sponsors
+Fonctionnalités notables
+Prise de rendez‑vous côté client
+Le composant Livewire PrendreRendezVous gère un formulaire en plusieurs étapes : choix de l’employé, sélection du créneau puis confirmation. Les validations sont intégrées dans le composant et la vue correspondante affiche un « stepper » dynamique.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Tableau de bord administrateur
+Le composant AdminDashboard calcule des statistiques sur les rendez‑vous (validés, en attente, refusés) et affiche un calendrier global ainsi que la gestion des limites journalières pour chaque employé.
 
-### Premium Partners
+Gestion des disponibilités des employés
+Les employés peuvent ajouter ou supprimer leurs créneaux via DisponibilitesManager. Un calendrier personnel affiche ensuite disponibilités et rendez‑vous confirmés.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Notifications et toasts
+Un composant Vue/Alpine affiche des toasts animés en bas de page, avec un son de succès ou d’erreur pour renforcer l’interactivité
 
-## Contributing
+Outils en ligne de commande
+Plusieurs commandes artisan facilitent le développement : par exemple dispo:generer pour créer des disponibilités de test ou des vérifications de composants Livewire.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Seeders et paramètres
+Le DatabaseSeeder insère des valeurs par défaut (feedback de test, limites journalières, paramètre global « duree_creneau »). Un helper parametre() simplifie la lecture de ces paramètres
 
-## Code of Conduct
+Points de repère pour approfondir
+Comprendre Laravel : lire la documentation officielle sur les migrations, Eloquent, les middlewares et les notifications.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Jetstream et Livewire : se familiariser avec la structure de Jetstream (authentification, équipes, API tokens) et avec le cycle de vie des composants Livewire pour manipuler facilement les vues dynamiques.
 
-## Security Vulnerabilities
+Gestion des assets : observer comment Vite compile resources/css/app.css et resources/js/app.js, et comment Tailwind est configuré dans tailwind.config.js.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Base de données : étudier les migrations pour voir comment sont reliées les entités (rendez‑vous, disponibilités, limites journalières, feedback).
 
-## License
+Tests : la suite tests/ montre des exemples de tests Laravel ; s’en inspirer pour ajouter ses propres scénarios.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+En suivant ces repères et en parcourant progressivement les dossiers mentionnés, on peut se familiariser avec le code et comprendre comment l’application gère la prise de rendez‑vous de façon interactive.

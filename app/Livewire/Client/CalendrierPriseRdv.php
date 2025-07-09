@@ -40,13 +40,13 @@ class CalendrierPriseRdv extends Component
         $raw = Disponibilite::where('user_id', $this->employe_id)
             ->whereBetween('date', [$debut, $fin])
             ->orderBy('date')
-            ->orderBy('heure')
+            ->orderBy('heure_debut')
             ->get();
 
 
         foreach ($raw as $item) {
             $jour = $item->date;
-            $heure = $item->heure;
+            $heure = $item->heure_debut;
 
             // Ne pas afficher les créneaux déjà réservés
             $dejaPris = RendezVous::where('employe_id', $this->employe_id)

@@ -27,7 +27,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'duree_creneau', 
+        'role', 
+        'tva-number', 
+        'duree-creneau' 
     ];
 
 
@@ -59,6 +61,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'is_admin' ,
     ];
 
     public function disponibilites()
@@ -74,5 +77,9 @@ class User extends Authenticatable
     public function rendezvousEnTantQueClient()
     {
         return $this->hasMany(RendezVous::class, 'client_id');
+    }
+    public function getIsAdminAttribute(): bool 
+    {
+        return $this->role === 'admin' ;
     }
 }

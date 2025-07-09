@@ -11,10 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['client', 'employe', 'societe', 'admin'])->default('client');
-            $table->string('tva_number')->nullable();  
-        });
+        Schema::rename('limites_journalières', 'limites_journalieres');
     }
 
     /**
@@ -22,8 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            //
-        });
+        Schema::rename('limites_journalieres', 'limites_journalières');
     }
 };

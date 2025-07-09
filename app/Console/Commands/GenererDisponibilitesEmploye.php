@@ -30,7 +30,10 @@ class GenererDisponibilitesEmploye extends Command
                 Disponibilite::firstOrCreate([
                     'user_id' => $employe->id,
                     'date' => $jour->toDateString(),
-                    'heure' => $heure,
+                    'heure_debut' => $heure,
+                    'heure_fin' => Carbon::parse($heure)
+                        ->addMinutes($employe->duree_creneau)
+                        ->format('H:i'),
                 ]);
             }
         }

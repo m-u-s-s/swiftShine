@@ -24,7 +24,7 @@ class CheckMissingTables extends Command
             'rendez_vous',
             'disponibilites',
             'feedback',
-            'limites_journalières',
+            'limites_journalieres',
         ];
 
         $missing = [];

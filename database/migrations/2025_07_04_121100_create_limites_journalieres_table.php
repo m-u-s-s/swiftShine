@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('limites_journalières', function (Blueprint $table) {
+        Schema::create('limites_journalieres', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('date');
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('limites_journalières');
+        Schema::dropIfExists('limites_journalieres');
     }
 };

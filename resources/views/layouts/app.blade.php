@@ -18,6 +18,7 @@
     <!-- Styles -->
     @livewireStyles
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
 <body class="font-sans antialiased">
@@ -43,6 +44,7 @@
 
         {{-- ✅ Affiche le toast global --}}
         <x-toast />
+        @livewire('jetstream.notifications')
 
         <!-- Dashboard résumé si connecté -->
         @auth
@@ -65,6 +67,8 @@
 
     @livewireScripts
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 </body>
 
 </html>

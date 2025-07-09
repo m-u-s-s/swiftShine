@@ -14,6 +14,7 @@ class AdminDashboard extends Component
     public $statsMensuelles = [];
     public $rdvs = [];
     public $employes;
+    public $employeSelectionne = null;
 
     public function mount()
     {
@@ -75,7 +76,7 @@ class AdminDashboard extends Component
     public function render()
     {
         return view('livewire.admin-dashboard', [
-            'employes' => $this->employes,
+            'employes' => User::where('role', 'employe')->get(),
             'stats' => $this->statistiquesData,
             'rdvs' => $this->rdvs,
         ]);

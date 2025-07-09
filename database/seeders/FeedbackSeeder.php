@@ -4,37 +4,34 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Feedback;
-use App\Models\RendezVous;
 use App\Models\User;
+use App\Models\RendezVous;
 
 class FeedbackSeeder extends Seeder
 {
     public function run(): void
     {
-        // On sélectionne un client avec au moins 1 rendez-vous passé
-        $client = User::where('role', 'client')->first();
+        $clients = User::where('role', 'client')->get();
+        $employes = User::where('role', 'employe')->get();
 
-        if (!$client) {
-            $this->command->warn("⚠️ Aucun client trouvé pour créer un feedback.");
+        if ($clients->isEmpty() || $employes->isEmpty()) {
+            $this->command->warn('⚠️ Pas de clients ou d’employés pour générer les feedbacks.');
             return;
         }
 
-        $rdv = RendezVous::where('client_id', $client->id)
-            ->whereDate('date', '<', now())
-            ->first();
+        $rdvs = RendezVous::inRandomOrder()->take(10)->get();
 
-        if (!$rdv) {
-            $this->command->warn("⚠️ Aucun RDV passé trouvé pour ce client.");
-            return;
+        foreach ($rdvs as $rdv) {
+            Feedback::create([
+                'client_id' => $rdv->client_id,
+                'rendez_vous_id' => $rdv->id,
+                'note' => rand(2, 5),
+                'commentaire' => fake()->paragraph(1),
+                'reponse_admin' => rand(0, 1) ? fake()->sentence() : null,
+                'created_at' => now()->subDays(rand(0, 30)),
+            ]);
         }
 
-        Feedback::create([
-            'rendez_vous_id' => $rdv->id,
-            'client_id' => $client->id,
-            'commentaire' => 'Service impeccable, merci beaucoup !',
-            'note' => 5,
-        ]);
-
-        $this->command->info("✅ Feedback inséré avec succès.");
+        $this->command->info('✅ FeedbackSeeder exécuté : feedbacks générés.');
     }
 }

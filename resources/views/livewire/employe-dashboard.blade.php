@@ -1,42 +1,61 @@
-<x-app-layout>
-    <div class="p-6 space-y-6">
-        <h2 class="text-2xl font-bold mb-4">👷 Mon tableau de bord employé</h2>
+<div class="p-6 space-y-6">
 
-        {{-- 🗓️ Gestion des limites de rendez-vous --}}
-        <div class="bg-white p-4 rounded shadow">
-            <h3 class="text-lg font-semibold mb-4">🧭 Limites journalières</h3>
+    @if (Laravel\Jetstream\Jetstream::hasAccountDeletionFeatures())
+    <div class="bg-white p-4 rounded shadow space-y-2 mt-4">
+        <h3 class="text-sm font-semibold text-blue-800">🔐 Connexions actives</h3>
 
-            <table class="w-full text-sm border border-gray-200">
-                <thead class="bg-blue-50">
-                    <tr>
-                        @foreach(['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'] as $i => $label)
-                            <th class="px-3 py-2 border text-center capitalize">
-                                {{ ucfirst($label) }}
-                            </th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        @foreach(range(0, 6) as $i)
-                            @php
-                                $date = now()->startOfWeek()->addDays($i)->toDateString();
-                            @endphp
-                            <td class="p-2 border text-center align-top">
-                                @livewire('modifier-limite-jour', [
-                                    'date' => $date,
-                                    'user_id' => auth()->id()
-                                ], key('limite-emp-' . $date))
-                            </td>
-                        @endforeach
-                    </tr>
-                </tbody>
-            </table>
+        @foreach ($sessions = Auth::user()->sessions ?? [] as $session)
+        <div class="flex items-center justify-between text-sm border-b py-2">
+            <div>
+                {{ $session->agent['platform'] ?? 'Inconnu' }} -
+                {{ $session->agent['browser'] ?? 'Navigateur inconnu' }}
+                <br>
+                <span class="text-xs text-gray-500">
+                    {{ $session->ip_address }},
+                    dernière activité : {{ \Carbon\Carbon::parse($session->last_active)->diffForHumans() }}
+                </span>
+            </div>
+            @if ($session->is_current_device)
+            <span class="text-green-600 text-xs font-semibold">Appareil actuel</span>
+            @endif
         </div>
-
-        {{-- Autres composants employés --}}
-        @livewire('disponibilites-manager')
-        @livewire('employe.mes-rendez-vous')
-        @livewire('employe.calendrier-employe')
+        @endforeach
     </div>
-</x-app-layout>
+    @endif
+    <h2 class="text-2xl font-bold text-blue-900">👤 Tableau de bord employé</h2>
+
+    {{-- ✅ Toast Livewire --}}
+    <x-toast />
+
+    {{-- 📋 Liste des rendez-vous avec filtres, tri, recherche --}}
+    <div class="bg-white rounded shadow-md p-4 border">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">📅 Mes rendez-vous</h3>
+        <livewire:mes-rendez-vous />
+    </div>
+
+    {{-- ⚙️ Gestion des limites journalières --}}
+    <div class="bg-white p-4 rounded shadow border mt-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-4">🛠️ Mes limites de RDV par jour</h3>
+
+        <div class="space-y-2">
+            @foreach(\Carbon\Carbon::now()->startOfWeek()->daysUntil(\Carbon\Carbon::now()->endOfWeek()) as $jour)
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                <div class="text-sm text-gray-700 font-medium w-1/3">
+                    {{ $jour->translatedFormat('l d F') }}
+                </div>
+                <div class="w-2/3">
+                    @livewire('modifier-limite-jour', [
+                    'date' => $jour->format('Y-m-d'),
+                    'user_id' => auth()->id(),
+                    'fromAdmin' => false
+                    ], key($jour->format('Ymd') . '-' . auth()->id()))
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<livewire:feedbacks-employe />
+<livewire:employe.feedback-stats />
+<livewire:employe.validation-multiple-rdv />

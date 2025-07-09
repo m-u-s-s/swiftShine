@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('rendez_vous_id')->constrained('rendez_vous')->onDelete('cascade');
             $table->foreignId('client_id')->constrained('users')->onDelete('cascade');
             $table->text('commentaire')->nullable();
-            $table->tinyInteger('note')->nullable(); // entre 1 et 5
+            $table->tinyInteger('note')->nullable();
+            $table->text('reponse_admin')->nullable(); // entre 1 et 5
             $table->timestamps();
         });
     }

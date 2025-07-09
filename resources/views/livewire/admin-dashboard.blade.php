@@ -1,9 +1,70 @@
 <x-app-layout>
     <div class="p-6 space-y-6">
+
+        @if (Laravel\Jetstream\Jetstream::hasAccountDeletionFeatures())
+        <div class="bg-white p-4 rounded shadow space-y-2 mt-4">
+            <h3 class="text-sm font-semibold text-blue-800">🔐 Connexions actives</h3>
+
+            @foreach ($sessions = Auth::user()->sessions ?? [] as $session)
+            <div class="flex items-center justify-between text-sm border-b py-2">
+                <div>
+                    {{ $session->agent['platform'] ?? 'Inconnu' }} -
+                    {{ $session->agent['browser'] ?? 'Navigateur inconnu' }}
+                    <br>
+                    <span class="text-xs text-gray-500">
+                        {{ $session->ip_address }},
+                        dernière activité : {{ \Carbon\Carbon::parse($session->last_active)->diffForHumans() }}
+                    </span>
+                </div>
+                @if ($session->is_current_device)
+                <span class="text-green-600 text-xs font-semibold">Appareil actuel</span>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @endif
         <h2 class="text-2xl font-bold text-blue-900">🛡️ Tableau de bord administrateur</h2>
 
         {{-- ✅ Toast global --}}
         <x-toast />
+
+        <livewire:admin.feedback-stats />
+
+
+        <div class="bg-white p-5 rounded shadow mt-8">
+            <h2 class="text-lg font-semibold text-blue-900 mb-4">🧩 Limites journalières des employés</h2>
+
+            {{-- 🔽 Sélecteur d’employé --}}
+            <div class="mb-4">
+                <label for="employe_id" class="text-sm font-medium text-gray-700">Choisir un employé :</label>
+                <select wire:model="employeSelectionne" id="employe_id"
+                    class="mt-1 block w-64 border-gray-300 rounded shadow-sm text-sm">
+                    <option value="">-- Sélectionner --</option>
+                    @foreach($employes as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            @if($employeSelectionne)
+            <div class="space-y-2">
+                @foreach(\Carbon\Carbon::now()->startOfWeek()->daysUntil(\Carbon\Carbon::now()->endOfWeek()) as $jour)
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <div class="text-sm text-gray-700 font-medium w-1/3">
+                        {{ $jour->translatedFormat('l d F') }}
+                    </div>
+                    <div class="w-2/3">
+                        @livewire('modifier-limite-jour', [
+                        'date' => $jour->format('Y-m-d'),
+                        'user_id' => $employeSelectionne,
+                        'fromAdmin' => true
+                        ], key($jour->format('Ymd') . '-' . $employeSelectionne))
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
 
         {{-- 📊 Statistiques / Graphiques --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -45,6 +106,52 @@
             @endforeach
         </div>
     </div>
+
+    <div class="bg-white p-4 rounded shadow border mt-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3">📤 Exporter les feedbacks (PDF)</h3>
+
+        <form action="{{ route('admin.feedbacks.export') }}" method="GET" target="_blank" class="space-y-3 md:flex md:items-end md:gap-4">
+            {{-- 🔎 Filtre employé --}}
+            <div class="flex flex-col">
+                <label for="employe_id" class="text-sm text-gray-600">Employé :</label>
+                <select name="employe_id" id="employe_id" class="border rounded px-2 py-1 text-sm">
+                    <option value="">— Tous —</option>
+                    @foreach(\App\Models\User::where('role', 'employe')->get() as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- 🔎 Filtre client --}}
+            <div class="flex flex-col">
+                <label for="client_id" class="text-sm text-gray-600">Client :</label>
+                <select name="client_id" id="client_id" class="border rounded px-2 py-1 text-sm">
+                    <option value="">— Tous —</option>
+                    @foreach(\App\Models\User::where('role', 'client')->get() as $client)
+                    <option value="{{ $client->id }}">{{ $client->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- 📤 Bouton export --}}
+            <div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition">
+                    📄 Télécharger le PDF
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    <livewire:admin-feedbacks />
+    <livewire:admin.gestion-utilisateurs />
+    <livewire:admin.agenda-hebdomadaire />
+    @livewire('jetstream.notifications')
+    <x-admin.recapitulatif-acces />
+
+
+
+
 
 
     @push('scripts')

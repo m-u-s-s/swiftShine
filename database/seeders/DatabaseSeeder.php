@@ -20,8 +20,11 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call(FeedbackSeeder::class);
-        $this->call(LimitesJournaliereSeeder::class);
+        $this->call([
+            LimitesJournaliereSeeder::class,
+            FeedbackSeeder::class,
+            StatutRendezVousSeeder::class,
+        ]);
 
         Parametre::updateOrCreate(
             ['cle' => 'duree_creneau'],

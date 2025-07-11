@@ -26,7 +26,7 @@ class FeedbacksClient extends Component
     public function rendezVousSansFeedback()
     {
         return auth()->user()->rendezVous()
-            ->where('statut', 'validé')
+            ->where('status', 'valide')
             ->whereDoesntHave('feedback')
             ->latest()
             ->get();

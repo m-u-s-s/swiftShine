@@ -2,11 +2,11 @@
 
 @php
     $rdv = $feedback->rendezVous;
-    $status = $rdv->statut ?? 'en attente';
+    $status = $rdv->status ?? 'en_attente';
 
     $statusColor = match($status) {
-        'validé' => 'bg-green-100 text-green-700',
-        'refusé' => 'bg-red-100 text-red-700',
+        'valide' => 'bg-green-100 text-green-700',
+        'refuse' => 'bg-red-100 text-red-700',
         default => 'bg-yellow-100 text-yellow-700',
     };
 @endphp

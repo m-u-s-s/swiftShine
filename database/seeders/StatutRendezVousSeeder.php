@@ -9,14 +9,14 @@ class StatutRendezVousSeeder extends Seeder
 {
     public function run(): void
     {
-        $statuts = ['validé', 'refusé', 'en attente'];
+        $statuses = ['valide', 'refuse', 'en_attente'];
 
-        RendezVous::all()->each(function ($rdv) use ($statuts) {
+        RendezVous::all()->each(function ($rdv) use ($statuses) {
             $rdv->update([
-                'statut' => $statuts[array_rand($statuts)],
+                'status' => $statuses[array_rand($statuses)],
             ]);
         });
 
-        $this->command->info('✅ Les statuts des rendez-vous ont été répartis aléatoirement.');
+        $this->command->info('✅ Les status des rendez-vous ont été répartis aléatoirement.');
     }
 }

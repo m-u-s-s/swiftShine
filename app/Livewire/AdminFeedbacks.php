@@ -15,7 +15,7 @@ class AdminFeedbacks extends Component
     public $employe_id = '';
     public $client_id = '';
     public $perPage = 5;
-    public $statut = '';
+    public $status = '';
     public $reponse = [];
 
 
@@ -52,9 +52,9 @@ class AdminFeedbacks extends Component
         Feedback::find($id)?->update(['reponse_admin' => $val]);
         $this->dispatch('toast', 'Réponse enregistrée', 'success');
     }
-    public function filterByStatut($val)
+    public function filterByStatus($val)
     {
-        $this->statut = $val;
+        $this->status = $val;
         $this->resetPage();
     }
 
@@ -64,9 +64,9 @@ class AdminFeedbacks extends Component
         $feedbacks = Feedback::with(['client', 'rendezVous.employe'])
             ->when($this->employe_id, fn($q) =>
             $q->whereHas('rendezVous', fn($r) => $r->where('employe_id', $this->employe_id)))
-            ->when($this->statut, fn($q) =>
+            ->when($this->status, fn($q) =>
             $q->whereHas('rendezVous', fn($r) =>
-            $r->where('statut', $this->statut)))
+            $r->where('status', $this->status)))
             ->when($this->client_id, fn($q) =>
             $q->where('client_id', $this->client_id))
             ->orderBy('created_at', 'desc')

@@ -23,7 +23,7 @@ class ValidationMultipleRdv extends Component
     {
         RendezVous::whereIn('id', $this->selection)
             ->where('employe_id', Auth::id())
-            ->update(['statut' => 'validé']);
+            ->update(['status' => 'valide']);
 
         $this->selection = [];
         session()->flash('success', '✅ Rendez-vous validés avec succès.');
@@ -33,7 +33,7 @@ class ValidationMultipleRdv extends Component
     {
         RendezVous::whereIn('id', $this->selection)
             ->where('employe_id', Auth::id())
-            ->update(['statut' => 'refusé']);
+            ->update(['status' => 'refuse']);
 
         $this->selection = [];
         session()->flash('success', '❌ Rendez-vous refusés.');
@@ -42,7 +42,7 @@ class ValidationMultipleRdv extends Component
     public function render()
     {
         $rdvs = RendezVous::where('employe_id', Auth::id())
-            ->where('statut', 'en attente')
+            ->where('status', 'en_attente')
             ->orderBy('date')
             ->get();
 

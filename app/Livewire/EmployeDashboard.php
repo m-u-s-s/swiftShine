@@ -9,16 +9,16 @@ use App\Notifications\StatutRendezVousNotification;
 class EmployeDashboard extends Component
 {
 
-    public function mettreAJourStatut($id, $nouveauStatut)
+    public function mettreAJourStatus($id, $nouveauStatus)
     {
         $rdv = RendezVous::findOrFail($id);
-        $rdv->status = $nouveauStatut;
+        $rdv->status = $nouveauStatus;
         $rdv->save();
 
         // ✅ Notifier le client
         $rdv->client->notify(new StatutRendezVousNotification($rdv));
 
-        session()->flash('message', 'Statut mis à jour et notification envoyée.');
+        session()->flash('message', 'Status mis à jour et notification envoyée.');
     }
 
     public function render()

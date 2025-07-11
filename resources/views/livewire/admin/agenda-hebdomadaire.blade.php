@@ -27,9 +27,9 @@
 
                 @forelse($jour['rdvs'] as $rdv)
                     @php
-                        $badge = match($rdv->statut) {
-                            'validé' => 'bg-green-100 text-green-700',
-                            'refusé' => 'bg-red-100 text-red-700',
+                        $badge = match($rdv->status) {
+                            'valide' => 'bg-green-100 text-green-700',
+                            'refuse' => 'bg-red-100 text-red-700',
                             default => 'bg-yellow-100 text-yellow-800',
                         };
                     @endphp
@@ -38,7 +38,7 @@
                         <div class="flex justify-between">
                             <span>🕒 {{ $rdv->heure }}</span>
                             <span class="text-xs px-2 py-1 rounded {{ $badge }}">
-                                {{ ucfirst($rdv->statut) }}
+                                {{ ucfirst($rdv->status) }}
                             </span>
                         </div>
                         <div class="text-xs text-gray-600">

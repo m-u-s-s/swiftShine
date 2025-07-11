@@ -12,28 +12,28 @@ class MesRendezVous extends Component
 {
     use WithPagination;
 
-    public $filtreStatut = null;
+    public $filtreStatus = null;
     public $tri = 'asc';
     public $search = '';
     protected $listeners = ['refuser-rdv' => 'refuserRdv'];
 
-    public function mettreAJourStatut($id, $statut)
+    public function mettreAJourStatut($id, $status)
     {
         $rdv = RendezVous::findOrFail($id);
-        $rdv->status = $statut;
+        $rdv->status = $status;
         $rdv->save();
 
         $rdv->client->notify(new StatutRendezVousNotification($rdv));
 
         $this->dispatch('toast',
-            $statut === 'valide' ? 'Rendez-vous confirmé.' : 'Rendez-vous refusé.',
-            $statut === 'valide' ? 'success' : 'error'
+            $status === 'valide' ? 'Rendez-vous confirmé.' : 'Rendez-vous refusé.',
+            $status === 'valide' ? 'success' : 'error'
         );
     }
 
     public function refuserRdv($payload)
     {
-        $this->mettreAJourStatut($payload['id'], 'refuse');
+        $this->mettreAJourStatus($payload['id'], 'refuse');
     }
 
     public function updatingSearch()
@@ -41,7 +41,7 @@ class MesRendezVous extends Component
         $this->resetPage();
     }
 
-    public function updatingFiltreStatut()
+    public function updatingFiltreStatus()
     {
         $this->resetPage();
     }
@@ -53,8 +53,8 @@ class MesRendezVous extends Component
                 $q->where('name', 'like', '%' . $this->search . '%');
             });
 
-        if ($this->filtreStatut) {
-            $query->where('status', $this->filtreStatut);
+        if ($this->filtreStatus) {
+            $query->where('status', $this->filtreStatus);
         }
 
         return view('livewire.employe.mes-rendez-vous', [

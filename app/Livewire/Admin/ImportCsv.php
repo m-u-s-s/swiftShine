@@ -55,7 +55,7 @@ class ImportCsv extends Component
                     'heure' => 'required',
                     'client_id' => 'required|exists:users,id',
                     'employe_id' => 'required|exists:users,id',
-                    'statut' => 'in:validé,refusé,en attente',
+                    'status' => 'in:valide,refuse,en attente',
                 ]);
 
                 if ($validator->fails()) continue;
@@ -65,7 +65,7 @@ class ImportCsv extends Component
                     'heure' => $data['heure'],
                     'client_id' => $data['client_id'],
                     'employe_id' => $data['employe_id'],
-                    'statut' => $data['statut'],
+                    'status' => $data['status'],
                 ]);
             }
 

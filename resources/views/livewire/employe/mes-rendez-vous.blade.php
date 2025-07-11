@@ -21,21 +21,21 @@
         </div>
     </div>
 
-    {{-- 🎛️ Filtres statut --}}
+    {{-- 🎛️ Filtres status --}}
     <div class="flex items-center gap-3 mb-4">
         @foreach(['valide' => '✅', 'en_attente' => '⏳', 'refuse' => '❌'] as $key => $icon)
             <button
                 wire:click="$set('filtreStatut', '{{ $key }}')"
                 class="text-sm px-3 py-1 rounded border transition
-                    {{ $filtreStatut === $key
+                    {{ $filtreStatus === $key
                         ? 'bg-blue-600 text-white border-blue-700'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 {{ $icon }} {{ ucfirst(str_replace('_', ' ', $key)) }}
             </button>
         @endforeach
 
-        @if($filtreStatut)
-            <button wire:click="$set('filtreStatut', null)" class="text-sm text-gray-600 underline">
+        @if($filtreStatus)
+            <button wire:click="$set('filtreStatus', null)" class="text-sm text-gray-600 underline">
                 Réinitialiser
             </button>
         @endif
@@ -69,7 +69,7 @@
                     <td class="border p-2"><x-badge :status="$rdv->status" /></td>
                     <td class="border p-2">
                         @if($rdv->status === 'en_attente')
-                            <button wire:click="mettreAJourStatut({{ $rdv->id }}, 'valide')"
+                            <button wire:click="mettreAJourStatus({{ $rdv->id }}, 'valide')"
                                 class="px-2 py-1 bg-green-600 text-white rounded text-sm mr-2">✅</button>
 
                             <button

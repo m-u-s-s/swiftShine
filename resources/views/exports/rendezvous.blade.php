@@ -12,7 +12,7 @@
                 <td>{{ $rdv->heure }}</td>
                 <td>{{ $rdv->client->name ?? '—' }}</td>
                 <td>{{ $rdv->employe->name ?? '—' }}</td>
-                <td>{{ $rdv->statut }}</td>
+                <td>{{ $rdv->status }}</td>
             </tr>
         @endforeach
     </tbody>

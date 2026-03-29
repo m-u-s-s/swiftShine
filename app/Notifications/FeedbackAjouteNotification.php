@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Models\Feedback;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use App\Models\Feedback;
 
 class FeedbackAjouteNotification extends Notification
 {

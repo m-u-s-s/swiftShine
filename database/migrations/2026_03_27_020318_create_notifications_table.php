@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('feedback', function (Blueprint $table) {
-            $table->text('reponse_admin')->nullable()->after('commentaire');
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('type');
+            $table->morphs('notifiable');
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -21,8 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('feedback', function (Blueprint $table) {
-            $table->dropColumn('reponse_admin');
-        });
+        Schema::dropIfExists('notifications');
     }
 };

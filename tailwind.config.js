@@ -16,11 +16,18 @@ export default {
             fontFamily: {
                 sans: ["Figtree", ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                swift: {
+                    red: "#E03A2F",
+                    green: "#2F9E44",
+                    blue: "#003366",
+                },
+            },
         },
     },
 
     plugins: [forms, typography],
-    
+
     extend: {
         animation: {
             "fade-up": "fadeUp 0.5s ease-out",

@@ -22,13 +22,14 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             LimitesJournaliereSeeder::class,
-            FeedbackSeeder::class,
             StatutRendezVousSeeder::class,
+            FeedbackSeeder::class,
         ]);
 
         Parametre::updateOrCreate(
             ['cle' => 'duree_creneau'],
             ['valeur' => '30']
         );
+        $this->command->info('✅ DatabaseSeeder terminé.');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use App\Models\Feedback;
+use Illuminate\Support\Facades\Auth;
 
 class FeedbackStats extends Component
 {

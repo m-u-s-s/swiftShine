@@ -5,7 +5,6 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\User;
 use App\Models\RendezVous;
-use Illuminate\Support\Facades\Auth;
 
 class AdminDashboard extends Component
 {
@@ -14,11 +13,13 @@ class AdminDashboard extends Component
     public $statsMensuelles = [];
     public $rdvs = [];
     public $employes;
+    public $clients;
     public $employeSelectionne = null;
 
     public function mount()
     {
         $this->employes = User::where('role', 'employe')->get();
+        $this->clients = User::where('role', 'client')->get();
         $this->mettreAJourStats();
         $this->chargerRdvs();
     }
@@ -38,7 +39,7 @@ class AdminDashboard extends Component
         }
 
         $this->statistiquesData = [
-            'valide' => (clone $query)->where('status', 'valide')->count(),
+            'confirme' => (clone $query)->where('status', 'confirme')->count(),
             'attente' => (clone $query)->where('status', 'en_attente')->count(),
             'refuse' => (clone $query)->where('status', 'refuse')->count(),
         ];
@@ -63,8 +64,8 @@ class AdminDashboard extends Component
             return [
                 'title' => $rdv->client->name . ' → ' . $rdv->employe->name,
                 'start' => $rdv->date . 'T' . $rdv->heure,
-                'color' => match($rdv->status) {
-                    'valide' => '#22c55e',
+                'color' => match ($rdv->status) {
+                    'confirme' => '#22c55e',
                     'refuse' => '#ef4444',
                     'en_attente' => '#facc15',
                     default => '#60a5fa',
@@ -76,9 +77,10 @@ class AdminDashboard extends Component
     public function render()
     {
         return view('livewire.admin-dashboard', [
-            'employes' => User::where('role', 'employe')->get(),
+            'employes' => $this->employes,
+            'clients' => $this->clients,
             'stats' => $this->statistiquesData,
             'rdvs' => $this->rdvs,
-        ]);
+        ])->layout('layouts.app');
     }
 }

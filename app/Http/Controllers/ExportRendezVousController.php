@@ -4,46 +4,71 @@ namespace App\Http\Controllers;
 
 use App\Models\RendezVous;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ExportRendezVousController extends Controller
 {
-    public function export($format, $employeId = null)
+    public function export(Request $request, $format, $employeId = null)
     {
-        $query = RendezVous::with(['client', 'employe']);
+        Gate::authorize('export', User::class);
 
-        if ($employeId && $employeId !== 'tous') {
-            $query->where('employe_id', $employeId);
-        }
-
-        $rdvs = $query->orderBy('date')->get();
-
-        if ($format === 'csv') {
-            $csv = implode(",", ['Date', 'Heure', 'Client', 'Employé', 'Statut']) . "\n";
-
-            foreach ($rdvs as $r) {
-                $csv .= implode(",", [
-                    $r->date,
-                    $r->heure,
-                    $r->client->name ?? '',
-                    $r->employe->name ?? '',
-                    $r->status
-                ]) . "\n";
-            }
-
-            return Response::make($csv, 200, [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="rendezvous.csv"',
-            ]);
-        }
+        $rdvs = RendezVous::with(['client', 'employe'])
+            ->when($employeId, fn($q) =>
+                $q->where('employe_id', $employeId)
+            )
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->get();
 
         if ($format === 'pdf') {
-            $pdf = Pdf::loadView('exports.rendezvous-pdf', compact('rdvs'));
-            return $pdf->download('rendezvous.pdf');
+            $pdf = Pdf::loadView('exports.rendezvous', [
+                'data' => $rdvs
+            ]);
+
+            return $pdf->download('rendezvous_' . now()->format('Ymd_His') . '.pdf');
         }
 
-        abort(400, 'Format non pris en charge');
+        if ($format === 'csv') {
+            $filename = 'rendezvous_' . now()->format('Ymd_His') . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            ];
+
+            $callback = function () use ($rdvs) {
+                $file = fopen('php://output', 'w');
+
+                fputcsv($file, [
+                    'id',
+                    'client',
+                    'employe',
+                    'date',
+                    'heure',
+                    'status',
+                    'created_at',
+                ]);
+
+                foreach ($rdvs as $rdv) {
+                    fputcsv($file, [
+                        $rdv->id,
+                        $rdv->client?->name,
+                        $rdv->employe?->name,
+                        $rdv->date,
+                        $rdv->heure,
+                        $rdv->status,
+                        $rdv->created_at,
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        abort(404);
     }
 }

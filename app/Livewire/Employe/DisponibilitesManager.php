@@ -42,7 +42,7 @@ class DisponibilitesManager extends Component
     {
         $dispos = Disponibilite::where('user_id', Auth::id())
             ->orderBy('date')
-            ->get();
+            ->paginate(10);
 
         return view('livewire.employe.disponibilites-manager', [
             'disponibilites' => $dispos,

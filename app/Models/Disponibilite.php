@@ -9,6 +9,12 @@ class Disponibilite extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'user_id',
+        'jour',
+        'heure_debut',
+        'heure_fin',
+    ];
 
     public function user()
     {

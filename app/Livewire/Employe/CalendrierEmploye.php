@@ -20,7 +20,7 @@ class CalendrierEmploye extends Component
         foreach ($user->rendezvousEnTantQuEmploye as $rdv) {
             $debut = $rdv->date . 'T' . $rdv->heure;
             $fin = \Carbon\Carbon::parse($debut)
-                ->addHours($rdv->duree)
+                ->addMinutes($rdv->duree)
                 ->addMinutes(30)
                 ->format('Y-m-d\TH:i:s');
 

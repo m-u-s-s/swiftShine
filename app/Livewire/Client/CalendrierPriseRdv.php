@@ -34,6 +34,8 @@ class CalendrierPriseRdv extends Component
 
     public function chargerDisponibilites()
     {
+        $this->disponibilites = [];
+
         $debut = now()->startOfWeek()->addWeeks($this->semaineOffset);
         $fin = now()->endOfWeek()->addWeeks($this->semaineOffset);
 
@@ -43,32 +45,30 @@ class CalendrierPriseRdv extends Component
             ->orderBy('heure_debut')
             ->get();
 
+        $rdvs = RendezVous::where('employe_id', $this->employe_id)
+            ->whereBetween('date', [$debut, $fin])
+            ->whereIn('status', ['confirme', 'en_attente'])
+            ->get()
+            ->groupBy('date');
+
+        $limites = LimiteJournaliere::where('user_id', $this->employe_id)
+            ->whereBetween('date', [$debut, $fin])
+            ->get()
+            ->keyBy('date');
 
         foreach ($raw as $item) {
             $jour = $item->date;
             $heure = $item->heure_debut;
 
-            // Ne pas afficher les créneaux déjà réservés
-            $dejaPris = RendezVous::where('employe_id', $this->employe_id)
-                ->where('date', $jour)
-                ->where('heure', $heure)
-                ->whereIn('status', ['valide', 'en_attente'])
-                ->exists();
+            $rdvsJour = $rdvs[$jour] ?? collect();
 
+            $dejaPris = $rdvsJour->contains(fn($r) => $r->heure === $heure);
             if ($dejaPris) continue;
 
-            // Respecter la limite journalière s'il y en a une
-            $limite = LimiteJournaliere::where('user_id', $this->employe_id)
-                ->where('date', $jour)
-                ->first();
+            $limite = $limites[$jour] ?? null;
 
             if ($limite && $limite->limite > 0) {
-                $total = RendezVous::where('employe_id', $this->employe_id)
-                    ->where('date', $jour)
-                    ->whereIn('status', ['valide', 'en_attente'])
-                    ->count();
-
-                if ($total >= $limite->limite) continue;
+                if ($rdvsJour->count() >= $limite->limite) continue;
             }
 
             if ($this->filtreJour && strtolower(date('l', strtotime($jour))) !== strtolower($this->filtreJour)) {
@@ -87,8 +87,10 @@ class CalendrierPriseRdv extends Component
 
     public function semainePrecedente()
     {
-        $this->semaineOffset--;
-        $this->chargerDisponibilites();
+        if ($this->semaineOffset > 0) {
+            $this->semaineOffset--;
+            $this->chargerDisponibilites();
+        }
     }
 
     public function choisir($date, $heure)
@@ -96,6 +98,7 @@ class CalendrierPriseRdv extends Component
         $this->selectedDate = $date;
         $this->selectedHeure = $heure;
         $this->confirmation = true;
+
         $this->dispatch('creneauChoisi', date: $date, heure: $heure);
     }
 

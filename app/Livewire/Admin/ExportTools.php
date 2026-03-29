@@ -6,17 +6,20 @@ use Livewire\Component;
 use App\Models\RendezVous;
 use App\Models\User;
 use App\Models\Feedback;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
 
 class ExportTools extends Component
 {
-    public $type = 'rendez_vous'; // ou 'utilisateurs', 'feedbacks'
-    public $format = 'csv'; // ou 'pdf'
+    public $type = 'rendez_vous';
+    public $format = 'csv';
 
     public function export()
     {
+        Gate::authorize('export', User::class);
+
         $data = match ($this->type) {
             'rendez_vous' => RendezVous::with(['client', 'employe'])->get(),
             'utilisateurs' => User::all(),
@@ -39,17 +42,21 @@ class ExportTools extends Component
 
     public function exportCsv($data, $filename)
     {
-        $csv = '';
+        Gate::authorize('export', User::class);
 
         if ($data->isEmpty()) {
             return session()->flash('error', 'Aucune donnée à exporter.');
         }
 
-        $headers = array_keys($data->first()->toArray());
+        $csv = '';
+        $headers = array_keys($data->first()->getAttributes());
         $csv .= implode(',', $headers) . "\n";
 
         foreach ($data as $item) {
-            $csv .= implode(',', array_map(fn($v) => '"' . Str::of($v)->replace('"', '""') . '"', $item->toArray())) . "\n";
+            $csv .= implode(',', array_map(
+                fn($v) => '"' . Str::of($v)->replace('"', '""') . '"',
+                $item->getAttributes()
+            )) . "\n";
         }
 
         $path = "exports/{$filename}.csv";
@@ -63,4 +70,3 @@ class ExportTools extends Component
         return view('livewire.admin.export-tools');
     }
 }
-

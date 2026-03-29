@@ -13,13 +13,34 @@ class RendezVousFactory extends Factory
     public function definition(): array
     {
         return [
-            'client_id' => User::factory(),
-            'employe_id' => User::factory(),
-            'date' => $this->faker->date(),
-            'heure' => $this->faker->time('H:i'),
+            'client_id' => User::factory()->client(),
+            'employe_id' => User::factory()->employe(),
+            'date' => fake()->date(),
+            'heure' => fake()->time('H:i'),
             'duree' => 30,
-            'motif' => $this->faker->sentence(),
+            'motif' => fake()->sentence(),
             'status' => 'en_attente',
         ];
+    }
+
+    public function confirme(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'confirme',
+        ]);
+    }
+
+    public function refuse(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'refuse',
+        ]);
+    }
+
+    public function enAttente(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'en_attente',
+        ]);
     }
 }

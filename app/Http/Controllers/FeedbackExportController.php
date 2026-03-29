@@ -2,66 +2,87 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Feedback;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class FeedbackExportController extends Controller
 {
     public function export(Request $request)
     {
-        $query = Feedback::with('client', 'rendezVous.employe');
+        Gate::authorize('export', Feedback::class);
 
-        if ($request->filled('employe_id')) {
-            $query->whereHas('rendezVous', fn($q) =>
-                $q->where('employe_id', $request->employe_id));
-        }
+        $feedbacks = Feedback::with(['client', 'rendezVous.employe'])
+            ->when($request->employe_id, fn($q) =>
+                $q->whereHas('rendezVous', fn($r) =>
+                    $r->where('employe_id', $request->employe_id)
+                )
+            )
+            ->when($request->client_id, fn($q) =>
+                $q->where('client_id', $request->client_id)
+            )
+            ->latest()
+            ->get();
 
-        if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
-        }
-
-        $feedbacks = $query->get();
-
-        $pdf = Pdf::loadView('exports.feedbacks-pdf', compact('feedbacks'));
-        return $pdf->download('feedbacks.pdf');
-    }
-    public function exportCsv(Request $request)
-{
-    $query = Feedback::with('client', 'rendezVous.employe');
-
-    if ($request->filled('employe_id')) {
-        $query->whereHas('rendezVous', fn($q) =>
-            $q->where('employe_id', $request->employe_id));
-    }
-
-    if ($request->filled('client_id')) {
-        $query->where('client_id', $request->client_id);
-    }
-
-    $feedbacks = $query->get();
-
-    $csv = fopen('php://output', 'w');
-    $filename = 'feedbacks_export.csv';
-
-    header('Content-Type: text/csv');
-    header("Content-Disposition: attachment; filename=\"$filename\"");
-
-    // En-têtes CSV
-    fputcsv($csv, ['Client', 'Employé', 'Note', 'Commentaire', 'Date']);
-
-    foreach ($feedbacks as $f) {
-        fputcsv($csv, [
-            $f->client->name,
-            $f->rendezVous->employe->name ?? '—',
-            $f->note,
-            $f->commentaire,
-            $f->created_at->format('Y-m-d'),
+        $pdf = Pdf::loadView('exports.feedbacks', [
+            'data' => $feedbacks
         ]);
+
+        return $pdf->download('feedbacks_' . now()->format('Ymd_His') . '.pdf');
     }
 
-    fclose($csv);
-    exit;
-}
+    public function exportCsv(Request $request)
+    {
+        Gate::authorize('export', Feedback::class);
 
+        $feedbacks = Feedback::with(['client', 'rendezVous.employe'])
+            ->when($request->employe_id, fn($q) =>
+                $q->whereHas('rendezVous', fn($r) =>
+                    $r->where('employe_id', $request->employe_id)
+                )
+            )
+            ->when($request->client_id, fn($q) =>
+                $q->where('client_id', $request->client_id)
+            )
+            ->latest()
+            ->get();
+
+        $filename = 'feedbacks_' . now()->format('Ymd_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function () use ($feedbacks) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, [
+                'id',
+                'client',
+                'employe',
+                'note',
+                'commentaire',
+                'reponse_admin',
+                'created_at',
+            ]);
+
+            foreach ($feedbacks as $feedback) {
+                fputcsv($file, [
+                    $feedback->id,
+                    $feedback->client?->name,
+                    $feedback->rendezVous?->employe?->name,
+                    $feedback->note,
+                    $feedback->commentaire,
+                    $feedback->reponse_admin,
+                    $feedback->created_at,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

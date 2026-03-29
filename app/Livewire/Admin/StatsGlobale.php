@@ -23,13 +23,27 @@ class StatsGlobale extends Component
     {
         $rdvs = RendezVous::whereYear('date', $this->year)
             ->when($this->employe_id, fn($q) =>
-                $q->where('employe_id', $this->employe_id))
+            $q->where('employe_id', $this->employe_id))
             ->get();
 
-        $feedbacks = Feedback::whereYear('created_at', $this->year)->get();
+        $feedbacks = Feedback::whereYear('created_at', $this->year)
+            ->when(
+                $this->employe_id,
+                fn($q) =>
+                $q->whereHas(
+                    'rendezVous',
+                    fn($r) =>
+                    $r->where('employe_id', $this->employe_id)
+                )
+            )
+            ->get();
 
-        $dataMonthly = collect(range(1, 12))->map(function ($month) use ($rdvs) {
-            return $rdvs->filter(fn($r) => Carbon::parse($r->date)->month === $month)->count();
+        $dataMonthly = collect(range(1, 12))->map(function ($month) {
+            return RendezVous::whereYear('date', $this->year)
+                ->whereMonth('date', $month)
+                ->when($this->employe_id, fn($q) =>
+                $q->where('employe_id', $this->employe_id))
+                ->count();
         });
 
         $noteAverage = round($feedbacks->avg('note'), 2);

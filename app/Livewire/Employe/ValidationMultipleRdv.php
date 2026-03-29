@@ -5,6 +5,7 @@ namespace App\Livewire\Employe;
 use Livewire\Component;
 use App\Models\RendezVous;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ValidationMultipleRdv extends Component
 {
@@ -21,9 +22,15 @@ class ValidationMultipleRdv extends Component
 
     public function validerSelection()
     {
+        $rdvs = RendezVous::whereIn('id', $this->selection)->get();
+
+        foreach ($rdvs as $rdv) {
+            Gate::authorize('update', $rdv);
+        }
+
         RendezVous::whereIn('id', $this->selection)
             ->where('employe_id', Auth::id())
-            ->update(['status' => 'valide']);
+            ->update(['status' => 'confirme']);
 
         $this->selection = [];
         session()->flash('success', '✅ Rendez-vous validés avec succès.');
@@ -31,6 +38,12 @@ class ValidationMultipleRdv extends Component
 
     public function refuserSelection()
     {
+        $rdvs = RendezVous::whereIn('id', $this->selection)->get();
+
+        foreach ($rdvs as $rdv) {
+            Gate::authorize('update', $rdv);
+        }
+
         RendezVous::whereIn('id', $this->selection)
             ->where('employe_id', Auth::id())
             ->update(['status' => 'refuse']);

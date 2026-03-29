@@ -1,4 +1,4 @@
-<x-app-layout>
+
     <div class="p-6 space-y-6">
 
         @if (Laravel\Jetstream\Jetstream::hasAccountDeletionFeatures())
@@ -23,6 +23,43 @@
             @endforeach
         </div>
         @endif
+
+        <div class="bg-white p-4 rounded shadow border mt-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-3">📤 Exporter les feedbacks (PDF)</h3>
+
+            <form action="{{ route('admin.feedbacks.export') }}" method="GET" target="_blank" class="space-y-3 md:flex md:items-end md:gap-4">
+                {{-- 🔎 Filtre employé --}}
+                <div class="flex flex-col">
+                    <label for="export_employe_id" class="text-sm text-gray-600">Employé :</label>
+                    <select name="employe_id" id="export_employe_id" class="border rounded px-2 py-1 text-sm">
+                        <option value="">— Tous —</option>
+                        @foreach($employes as $emp)
+                        <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- 🔎 Filtre client --}}
+                <div class="flex flex-col">
+                    <label for="client_id" class="text-sm text-gray-600">Client :</label>
+                    <select name="client_id" id="client_id" class="border rounded px-2 py-1 text-sm">
+                        <option value="">— Tous —</option>
+                        @foreach($clients as $client)
+                        <option value="{{ $client->id }}">{{ $client->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- 📤 Bouton export --}}
+                <div>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition">
+                        📄 Télécharger le PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+
+
         <h2 class="text-2xl font-bold text-blue-900">🛡️ Tableau de bord administrateur</h2>
 
         {{-- ✅ Toast global --}}
@@ -36,8 +73,8 @@
 
             {{-- 🔽 Sélecteur d’employé --}}
             <div class="mb-4">
-                <label for="employe_id" class="text-sm font-medium text-gray-700">Choisir un employé :</label>
-                <select wire:model="employeSelectionne" id="employe_id"
+                <label for="dashboard_employe_id" class="text-sm font-medium text-gray-700">Choisir un employé :</label>
+                <select wire:model="employeSelectionne" id="dashboard_employe_id"
                     class="mt-1 block w-64 border-gray-300 rounded shadow-sm text-sm">
                     <option value="">-- Sélectionner --</option>
                     @foreach($employes as $emp)
@@ -75,7 +112,7 @@
         {{-- 📅 Calendrier interactif global --}}
         <div class="bg-white rounded shadow mt-6 p-4">
             <h3 class="text-lg font-semibold mb-2">📆 Calendrier global</h3>
-            <div id="adminCalendar"></div>
+            <div id="fullcalendar-admin"></div>
         </div>
 
         {{-- ⚙️ Configuration des limites de RDV pour chaque employé --}}
@@ -105,73 +142,52 @@
             </div>
             @endforeach
         </div>
+
+        <livewire:admin-feedbacks />
+        <livewire:admin.gestion-utilisateurs />
+        <livewire:admin.agenda-hebdomadaire />
+        <livewire:notifications />
+        <x-admin.recapitulatif-acces />
+
+
     </div>
 
-    <div class="bg-white p-4 rounded shadow border mt-6">
-        <h3 class="text-lg font-semibold text-blue-900 mb-3">📤 Exporter les feedbacks (PDF)</h3>
-
-        <form action="{{ route('admin.feedbacks.export') }}" method="GET" target="_blank" class="space-y-3 md:flex md:items-end md:gap-4">
-            {{-- 🔎 Filtre employé --}}
-            <div class="flex flex-col">
-                <label for="employe_id" class="text-sm text-gray-600">Employé :</label>
-                <select name="employe_id" id="employe_id" class="border rounded px-2 py-1 text-sm">
-                    <option value="">— Tous —</option>
-                    @foreach(\App\Models\User::where('role', 'employe')->get() as $emp)
-                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- 🔎 Filtre client --}}
-            <div class="flex flex-col">
-                <label for="client_id" class="text-sm text-gray-600">Client :</label>
-                <select name="client_id" id="client_id" class="border rounded px-2 py-1 text-sm">
-                    <option value="">— Tous —</option>
-                    @foreach(\App\Models\User::where('role', 'client')->get() as $client)
-                    <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- 📤 Bouton export --}}
-            <div>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition">
-                    📄 Télécharger le PDF
-                </button>
-            </div>
-        </form>
-    </div>
-
-
-    <livewire:admin-feedbacks />
-    <livewire:admin.gestion-utilisateurs />
-    <livewire:admin.agenda-hebdomadaire />
-    @livewire('jetstream.notifications')
-    <x-admin.recapitulatif-acces />
-
-
-
-
-
-
+<!-- script calendrier et apexcharts -->
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script>
-        let chartInstance, chartMensuelInstance;
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
-        document.addEventListener('livewire:load', () => {
-            chartInstance = new ApexCharts(document.querySelector("#chartStats"), {
+    <script>
+        let chartInstance = null;
+        let chartMensuelInstance = null;
+        let adminCalendarInstance = null;
+        let livewireListenersRegistered = false;
+
+        function initAdminCharts() {
+            const chartStatsEl = document.querySelector('#chartStats');
+            const chartMensuelEl = document.querySelector('#chartMensuel');
+
+            if (!chartStatsEl || !chartMensuelEl) return;
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            if (chartMensuelInstance) {
+                chartMensuelInstance.destroy();
+            }
+
+            chartInstance = new ApexCharts(chartStatsEl, {
                 chart: {
                     type: 'donut',
                     height: 300
                 },
                 series: [0, 0, 0],
-                labels: ['Validés', 'En attente', 'Refusés'],
+                labels: ['Confirmés', 'En attente', 'Refusés'],
                 colors: ['#16a34a', '#eab308', '#dc2626']
             });
-            chartInstance.render();
 
-            chartMensuelInstance = new ApexCharts(document.querySelector("#chartMensuel"), {
+            chartMensuelInstance = new ApexCharts(chartMensuelEl, {
                 chart: {
                     type: 'line',
                     height: 300
@@ -185,30 +201,20 @@
                 },
                 colors: ['#3b82f6']
             });
+
+            chartInstance.render();
             chartMensuelInstance.render();
+        }
 
-            Livewire.on('updateChartData', (data) => {
-                chartInstance.updateSeries([
-                    data.valide || 0,
-                    data.attente || 0,
-                    data.refuse || 0
-                ]);
-            });
-
-            Livewire.on('updateMonthlyChart', (data) => {
-                chartMensuelInstance.updateSeries([{
-                    name: 'RDV',
-                    data: data
-                }]);
-            });
-        });
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initAdminCalendar() {
             const calendarEl = document.getElementById('fullcalendar-admin');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
+            if (!calendarEl) return;
+
+            if (adminCalendarInstance) {
+                adminCalendarInstance.destroy();
+            }
+
+            adminCalendarInstance = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'fr',
                 events: @js($rdvs),
@@ -216,8 +222,45 @@
                     alert('RDV avec ' + info.event.title);
                 }
             });
-            calendar.render();
-        });
+
+            adminCalendarInstance.render();
+        }
+
+        function registerAdminDashboardListeners() {
+            if (livewireListenersRegistered) return;
+            livewireListenersRegistered = true;
+
+            Livewire.on('updateChartData', (event) => {
+                const data = event?.data ?? event;
+
+                if (!chartInstance) return;
+
+                chartInstance.updateSeries([
+                    data.confirme || 0,
+                    data.attente || 0,
+                    data.refuse || 0
+                ]);
+            });
+
+            Livewire.on('updateMonthlyChart', (event) => {
+                const data = event?.data ?? event;
+
+                if (!chartMensuelInstance) return;
+
+                chartMensuelInstance.updateSeries([{
+                    name: 'RDV',
+                    data: data
+                }]);
+            });
+        }
+
+        function bootAdminDashboard() {
+            initAdminCharts();
+            initAdminCalendar();
+            registerAdminDashboardListeners();
+        }
+
+        document.addEventListener('livewire:load', bootAdminDashboard);
+        document.addEventListener('livewire:navigated', bootAdminDashboard);
     </script>
     @endpush
-</x-app-layout>

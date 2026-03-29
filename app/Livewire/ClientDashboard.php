@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\RendezVous;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -29,32 +30,51 @@ class ClientDashboard extends Component
         return RendezVous::where('client_id', Auth::id())
             ->whereDate('date', '<', now())
             ->orderBy('date', 'desc')
-            ->limit(5)->get();
+            ->limit(5)
+            ->get();
     }
 
     public function modifier($id)
     {
         $rdv = RendezVous::findOrFail($id);
+
+        Gate::authorize('update', $rdv);
+
         $this->editRdvId = $rdv->id;
         $this->editDate = $rdv->date;
         $this->editHeure = $rdv->heure;
     }
 
+    public function fermerEdition()
+    {
+        $this->editRdvId = null;
+        $this->editDate = null;
+        $this->editHeure = null;
+    }
+
     public function enregistrerModif()
     {
-        $rdv = RendezVous::findOrFail($this->editRdvId);
+        $rdv = RendezVous::where('id', $this->editRdvId)
+            ->where('client_id', Auth::id())
+            ->firstOrFail();
+
+        Gate::authorize('update', $rdv);
+
         $rdv->date = $this->editDate;
         $rdv->heure = $this->editHeure;
-        $rdv->status = 'en_attente'; // repasse en attente si modifié
+        $rdv->status = 'en_attente';
         $rdv->save();
 
-        $this->reset(['editRdvId', 'editDate', 'editHeure']);
+        $this->fermerEdition();
         $this->dispatch('toast', 'Rendez-vous mis à jour.', 'success');
     }
 
     public function annuler($id)
     {
         $rdv = RendezVous::findOrFail($id);
+
+        Gate::authorize('delete', $rdv);
+
         $rdv->delete();
         $this->dispatch('toast', 'Rendez-vous annulé.', 'error');
     }
@@ -66,7 +86,7 @@ class ClientDashboard extends Component
         return view('livewire.client-dashboard', [
             'avenir' => $this->rendezVousAvenir,
             'passe' => $this->rendezVousPasse,
-            'total' => $total
-        ]);
+            'total' => $total,
+        ])->layout('layouts.app');
     }
 }

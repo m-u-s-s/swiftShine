@@ -1,64 +1,92 @@
 <?php
 
-namespace App\Livewire\Employe;
+namespace App\Livewire;
 
 use App\Models\RendezVous;
-use App\Notifications\StatutRendezVousNotification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class MesRendezVous extends Component
+class ClientDashboard extends Component
 {
     use WithPagination;
 
-    public $filtreStatus = null;
     public $tri = 'asc';
-    public $search = '';
-    protected $listeners = ['refuser-rdv' => 'refuserRdv'];
+    public $editRdvId = null;
+    public $editDate = null;
+    public $editHeure = null;
 
-    public function mettreAJourStatut($id, $status)
+    public function getRendezVousAvenirProperty()
+    {
+        return RendezVous::where('client_id', Auth::id())
+            ->whereDate('date', '>=', now())
+            ->orderBy('date', $this->tri)
+            ->paginate(5);
+    }
+
+    public function getRendezVousPasseProperty()
+    {
+        return RendezVous::where('client_id', Auth::id())
+            ->whereDate('date', '<', now())
+            ->orderBy('date', 'desc')
+            ->limit(5)
+            ->get();
+    }
+
+    public function modifier($id)
     {
         $rdv = RendezVous::findOrFail($id);
-        $rdv->status = $status;
+
+        Gate::authorize('update', $rdv);
+
+        $this->editRdvId = $rdv->id;
+        $this->editDate = $rdv->date;
+        $this->editHeure = $rdv->heure;
+    }
+
+    public function fermerEdition()
+    {
+        $this->editRdvId = null;
+        $this->editDate = null;
+        $this->editHeure = null;
+    }
+
+    public function enregistrerModif()
+    {
+        $rdv = RendezVous::where('id', $this->editRdvId)
+            ->where('client_id', Auth::id())
+            ->firstOrFail();
+
+        Gate::authorize('update', $rdv);
+
+        $rdv->date = $this->editDate;
+        $rdv->heure = $this->editHeure;
+        $rdv->status = 'en_attente';
         $rdv->save();
 
-        $rdv->client->notify(new StatutRendezVousNotification($rdv));
-
-        $this->dispatch('toast',
-            $status === 'valide' ? 'Rendez-vous confirmé.' : 'Rendez-vous refusé.',
-            $status === 'valide' ? 'success' : 'error'
-        );
+        $this->fermerEdition();
+        $this->dispatch('toast', 'Rendez-vous mis à jour.', 'success');
     }
 
-    public function refuserRdv($payload)
+    public function annuler($id)
     {
-        $this->mettreAJourStatus($payload['id'], 'refuse');
-    }
+        $rdv = RendezVous::findOrFail($id);
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
+        Gate::authorize('delete', $rdv);
 
-    public function updatingFiltreStatus()
-    {
-        $this->resetPage();
+        $rdv->delete();
+        $this->dispatch('toast', 'Rendez-vous annulé.', 'error');
     }
 
     public function render()
     {
-        $query = RendezVous::where('employe_id', Auth::id())
-            ->whereHas('client', function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%');
-            });
+        $total = RendezVous::where('client_id', Auth::id())->count();
 
-        if ($this->filtreStatus) {
-            $query->where('status', $this->filtreStatus);
-        }
-
-        return view('livewire.employe.mes-rendez-vous', [
-            'rendezVous' => $query->orderBy('date', $this->tri)->paginate(5)
-        ]);
+        return view('livewire.client-dashboard', [
+            'avenir' => $this->rendezVousAvenir,
+            'passe' => $this->rendezVousPasse,
+            'total' => $total,
+        ])->layout('layouts.app');
     }
 }

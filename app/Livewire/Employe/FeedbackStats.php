@@ -13,11 +13,20 @@ class FeedbackStats extends Component
 
     public function mount()
     {
-        $feedbacks = Feedback::whereHas('rendezVous', fn($q) =>
-            $q->where('employe_id', Auth::id()))->get();
+        $this->moyenne = round(
+            Feedback::whereHas(
+                'rendezVous',
+                fn($q) =>
+                $q->where('employe_id', Auth::id())
+            )->avg('note'),
+            2
+        );
 
-        $this->moyenne = round($feedbacks->avg('note'), 2);
-        $this->total = $feedbacks->count();
+        $this->total = Feedback::whereHas(
+            'rendezVous',
+            fn($q) =>
+            $q->where('employe_id', Auth::id())
+        )->count();
     }
 
     public function render()

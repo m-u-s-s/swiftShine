@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 
 class GestionUtilisateurs extends Component
 {
@@ -14,17 +15,28 @@ class GestionUtilisateurs extends Component
     public $search = '';
     public $perPage = 10;
 
-    public function updatingRoleFilter() { $this->resetPage(); }
-    public function updatingSearch() { $this->resetPage(); }
+    public function updatingRoleFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
 
     public function toggleActivation($userId)
     {
+        Gate::authorize('manage', User::class);
+
         $user = User::findOrFail($userId);
         $user->update(['active' => !$user->active]);
     }
 
     public function updateRole($userId, $newRole)
     {
+        Gate::authorize('manage', User::class);
+
         $user = User::findOrFail($userId);
         $user->update(['role' => $newRole]);
     }
@@ -32,11 +44,13 @@ class GestionUtilisateurs extends Component
     public function render()
     {
         $users = User::when($this->roleFilter, fn($q) =>
-                    $q->where('role', $this->roleFilter))
-                ->when($this->search, fn($q) =>
-                    $q->where('name', 'like', '%' . $this->search . '%'))
-                ->orderBy('name')
-                ->paginate($this->perPage);
+                $q->where('role', $this->roleFilter)
+            )
+            ->when($this->search, fn($q) =>
+                $q->where('name', 'like', '%' . $this->search . '%')
+            )
+            ->orderBy('name')
+            ->paginate($this->perPage);
 
         return view('livewire.admin.gestion-utilisateurs', compact('users'));
     }

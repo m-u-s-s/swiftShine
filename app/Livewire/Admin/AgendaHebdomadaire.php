@@ -34,18 +34,26 @@ class AgendaHebdomadaire extends Component
 
         $rdvs = RendezVous::with('employe', 'client')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->when($this->employe_id, fn($q) =>
-                $q->where('employe_id', $this->employe_id))
-            ->orderBy('date')->orderBy('heure')
+            ->when(
+                $this->employe_id,
+                fn($q) =>
+                $q->where('employe_id', $this->employe_id)
+            )
+            ->orderBy('date')
+            ->orderBy('heure')
             ->get();
 
+        $rdvsGrouped = $rdvs->groupBy('date');
+
         $jours = collect();
+
         foreach (range(0, 6) as $i) {
             $jour = $start->copy()->addDays($i);
+
             $jours->push([
                 'label' => $jour->translatedFormat('l d/m'),
                 'date' => $jour->toDateString(),
-                'rdvs' => $rdvs->where('date', $jour->toDateString())
+                'rdvs' => $rdvsGrouped[$jour->toDateString()] ?? collect(),
             ]);
         }
 

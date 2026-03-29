@@ -23,3 +23,13 @@
         >★</button>
     @endfor
 </div>
+<style>
+    .star {
+        color: #003366;
+        transition: transform 0.2s ease;
+    }
+    .star:hover {
+        color: #E03A2F;
+        transform: scale(1.1);
+    }
+</style>

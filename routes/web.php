@@ -1,73 +1,75 @@
-
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Livewire\{
     AdminDashboard,
     ClientDashboard,
     EmployeDashboard
 };
-
 use App\Livewire\Client\PrendreRendezVous;
-use App\Livewire\Client\CalendrierPriseRdv;
-use App\Http\Controllers\ExportRendezVousController;
-use App\Http\Controllers\FeedbackExportController;
 use App\Livewire\Admin\OutilsAdmin;
-use App\Models\Feedback;
-use App\Models\RendezVous;
-use App\Models\User;
+use App\Http\Controllers\{
+    ExportRendezVousController,
+    FeedbackExportController,
+    FeedbackInviteController
+};
+use App\Models\{Feedback, RendezVous, User};
 
 Route::get('/', PrendreRendezVous::class)->name('home');
 
-Route::middleware(['auth'])->get('/dashboard', function () {
-    return redirect()->route(auth()->user()->role . '.dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+
+        return match ($user->role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'client' => redirect()->route('client.dashboard'),
+            'employe' => redirect()->route('employe.dashboard'),
+            default => abort(403),
+        };
+    })->name('dashboard');
+
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('dashboard', AdminDashboard::class)->name('dashboard');
+        Route::get('outils', OutilsAdmin::class)->name('outils');
+
+        Route::get('feedbacks/export', [FeedbackExportController::class, 'export'])->name('feedbacks.export');
+        Route::get('feedbacks/export-csv', [FeedbackExportController::class, 'exportCsv'])->name('feedbacks.export.csv');
+
+        Route::get('export/pdf', function () {
+            $type = request('type');
+
+            $view = match ($type) {
+                'utilisateurs' => 'exports.users',
+                'feedbacks' => 'exports.feedbacks',
+                default => 'exports.rendezvous',
+            };
+
+            $data = match ($type) {
+                'utilisateurs' => User::all(),
+                'feedbacks' => Feedback::with(['client', 'rendezVous'])->get(),
+                default => RendezVous::with(['client', 'employe'])->get(),
+            };
+
+            return Pdf::loadView($view, ['data' => $data])
+                ->download($type . '_' . now()->format('Ymd_His') . '.pdf');
+        })->name('export.pdf');
+
+        Route::get('export/{format}/{employeId?}', [ExportRendezVousController::class, 'export'])
+            ->name('export.rendezvous');
+    });
+
+    Route::middleware('role:client')->prefix('dashboard/client')->name('client.')->group(function () {
+        Route::get('/', ClientDashboard::class)->name('dashboard');
+    });
+
+    Route::middleware('role:employe')->prefix('dashboard/employe')->name('employe.')->group(function () {
+        Route::get('/', EmployeDashboard::class)->name('dashboard');
+    });
+
+    Route::middleware('role:client')->prefix('feedback')->name('feedback.')->group(function () {
+        Route::get('ajouter/{rendezVous}', [FeedbackInviteController::class, 'create'])->name('create');
+        Route::post('ajouter/{rendezVous}', [FeedbackInviteController::class, 'store'])->name('store');
+    });
 });
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard/admin', AdminDashboard::class)->name('admin.dashboard')->middleware('role:admin');
-    Route::get('/dashboard/client', ClientDashboard::class)->name('client.dashboard')->middleware('role:client');
-    Route::get('/dashboard/employe', EmployeDashboard::class)->name('employe.dashboard')->middleware('role:employe');
-});
-
-Route::get('export/{format}/{employeId?}', [ExportRendezVousController::class, 'export'])->name('export.rendezvous');
-
-Route::get('/admin/feedbacks/export', [FeedbackExportController::class, 'export'])
-    ->middleware(['auth', 'verified'])
-    ->name('admin.feedbacks.export');
-
-Route::get('/admin/feedbacks/export-csv', [FeedbackExportController::class, 'exportCsv'])
-    ->middleware(['auth', 'verified'])
-    ->name('admin.feedbacks.export.csv');
-
-
-Route::get('/feedback/ajouter/{rendezVous}', [FeedbackInviteController::class, 'create'])
-    ->middleware(['auth', 'verified'])
-    ->name('client.feedback.create');
-
-Route::post('/feedback/ajouter/{rendezVous}', [FeedbackInviteController::class, 'store'])
-    ->middleware(['auth', 'verified'])
-    ->name('client.feedback.store');
-
-
-Route::get('/admin/outils', OutilsAdmin::class)
-    ->middleware(['auth', 'verified', 'admin']) // ou CheckRole::class
-    ->name('admin.outils');
-
-
-Route::get('/admin/export/pdf', function () {
-    $type = request('type');
-
-    $view = match ($type) {
-        'utilisateurs' => 'exports.users',
-        'feedbacks' => 'exports.feedbacks',
-        default => 'exports.rendezvous',
-    };
-
-    $data = match ($type) {
-        'utilisateurs' => User::all(),
-        'feedbacks' => Feedback::with(['client', 'rendezVous'])->get(),
-        default => RendezVous::with(['client', 'employe'])->get(),
-    };
-
-    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, ['data' => $data]);
-    return $pdf->download($type . '_' . now()->format('Ymd_His') . '.pdf');
-})->name('admin.export.pdf');

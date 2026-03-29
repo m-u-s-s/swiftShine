@@ -2,10 +2,11 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Feedback;
-use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class FeedbacksClient extends Component
 {
@@ -18,20 +19,22 @@ class FeedbacksClient extends Component
     {
         $this->resetPage();
     }
+
     public function updatingSort()
     {
         $this->resetPage();
     }
 
-    public function rendezVousSansFeedback()
+    public function supprimer($id)
     {
-        return auth()->user()->rendezVous()
-            ->where('status', 'valide')
-            ->whereDoesntHave('feedback')
-            ->latest()
-            ->get();
-    }
+        $feedback = Feedback::findOrFail($id);
 
+        Gate::authorize('delete', $feedback);
+
+        $feedback->delete();
+
+        $this->dispatch('toast', 'Feedback supprimé.', 'success');
+    }
 
     public function render()
     {

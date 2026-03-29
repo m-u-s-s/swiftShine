@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class RendezVous extends Model
 {
     use HasFactory;
+
     protected $table = 'rendez_vous';
+
     protected $fillable = [
         'client_id',
         'employe_id',
@@ -16,9 +18,13 @@ class RendezVous extends Model
         'heure',
         'duree',
         'motif',
-        'status'
+        'status',
     ];
 
+    protected $casts = [
+        'date' => 'date',
+        'duree' => 'integer',
+    ];
 
     public function client()
     {
@@ -32,6 +38,6 @@ class RendezVous extends Model
 
     public function feedback()
     {
-        return $this->hasOne(Feedback::class);
+        return $this->hasOne(Feedback::class, 'rendez_vous_id');
     }
 }

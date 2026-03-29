@@ -84,6 +84,5 @@
 
 
     <div class="mt-4">{{ $feedbacks->links() }}</div>
-    <x-star-rating wire:model="note" />
 
 </div>

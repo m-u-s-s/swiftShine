@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\LimiteJournaliere;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class ModifierLimiteJour extends Component
@@ -12,6 +14,7 @@ class ModifierLimiteJour extends Component
     public $user_id;
     public $limite;
     public $fromAdmin = false;
+    public $record;
 
     public function mount($date, $user_id, $fromAdmin = false)
     {
@@ -19,33 +22,61 @@ class ModifierLimiteJour extends Component
         $this->user_id = $user_id;
         $this->fromAdmin = $fromAdmin;
 
-        $limiteExistante = LimiteJournaliere::where('user_id', $user_id)->where('date', $date)->first();
-        $this->limite = $limiteExistante?->limite ?? null;
+        $this->record = LimiteJournaliere::where('user_id', $user_id)
+            ->where('date', $date)
+            ->first();
+
+        $this->limite = $this->record?->limite ?? null;
     }
 
     public function updatedLimite()
     {
-        $record = LimiteJournaliere::firstOrNew([
-            'user_id' => $this->user_id,
-            'date' => $this->date,
-        ]);
+        $targetUser = User::findOrFail($this->user_id);
+        $isAdmin = Auth::user()?->role === 'admin';
 
-        // 🔒 Si verrouillé par un admin, et que l'utilisateur n'est pas admin, on empêche l'écriture
-        if ($record->verrou_admin && !Auth::user()?->is_admin && !$this->fromAdmin) {
-            $this->dispatch('toast', "Modification refusée : cette limite est verrouillée par un administrateur.", 'error');
+        // Cas 1 : modification depuis l’admin
+        if ($this->fromAdmin) {
+            Gate::authorize('manage', User::class);
+        }
+        // Cas 2 : modification normale par l’utilisateur lui-même
+        else {
+            if (Auth::id() !== $targetUser->id) {
+                abort(403);
+            }
+        }
+
+        $record = LimiteJournaliere::firstOrCreate(
+            [
+                'user_id' => $this->user_id,
+                'date' => $this->date,
+            ],
+            [
+                'limite' => 0,
+                'verrou_admin' => false,
+            ]
+        );
+
+        // Si verrouillé par admin, un utilisateur normal ne peut plus modifier
+        if ($record->verrou_admin && !$isAdmin && !$this->fromAdmin) {
+            $this->dispatch(
+                'toast',
+                'Modification refusée : cette limite est verrouillée par un administrateur.',
+                'error'
+            );
             return;
         }
 
         $record->limite = $this->limite;
 
-        // Si l'utilisateur est admin (ou accède via dashboard admin), on verrouille la limite
-        if ($this->fromAdmin && Auth::user()?->is_admin) {
+        // Si l’admin modifie depuis l’interface admin, on verrouille
+        if ($this->fromAdmin && $isAdmin) {
             $record->verrou_admin = true;
         }
 
         $record->save();
+        $this->record = $record;
 
-        $this->dispatch('toast', "Limite mise à jour.", 'success');
+        $this->dispatch('toast', 'Limite mise à jour.', 'success');
     }
 
     public function render()

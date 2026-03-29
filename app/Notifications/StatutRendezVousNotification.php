@@ -2,43 +2,42 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
+use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
-use App\Models\RendezVous;
+use Illuminate\Notifications\Notification;
 
-class StatutRendezVousNotification extends Notification
+class RdvConfirmeNotification extends Notification
 {
+    use Queueable;
+
     public $rdv;
 
-    public function __construct(RendezVous $rdv)
+    public function __construct($rdv)
     {
         $this->rdv = $rdv;
     }
 
-    public function via($notifiable)
+    public function via(object $notifiable): array
     {
-        return ['mail', 'database']; // ✅ Email + Notification Livewire Jetstream
+        return ['mail', 'database'];
     }
 
-    public function toMail($notifiable)
+    public function toMail(object $notifiable): MailMessage
     {
-        $statusText = match($this->rdv->status) {
-            'valide' => 'confirmé ✅',
-            'refuse' => 'refusé ❌',
-            default => 'mis à jour',
-        };
-
         return (new MailMessage)
-            ->subject("Mise à jour de votre rendez-vous")
-            ->line("Votre rendez-vous du {$this->rdv->date} à {$this->rdv->heure} a été {$statusText}.")
-            ->action('Voir mon compte', url('/dashboard/client'));
+            ->subject('Rendez-vous confirmé')
+            ->line('Votre rendez-vous a bien été confirmé.')
+            ->line('Date : ' . $this->rdv->date . ' à ' . $this->rdv->heure)
+            ->action('Voir mon dashboard', url('/dashboard/client'))
+            ->line('Merci pour votre confiance.');
     }
 
-    public function toArray($notifiable)
+    public function toArray(object $notifiable): array
     {
         return [
-            'message' => "Votre rendez-vous du {$this->rdv->date} à {$this->rdv->heure} a été " . $this->rdv->status . '.',
-            'rdv_id' => $this->rdv->id
+            'message' => 'Votre rendez-vous du ' . $this->rdv->date . ' à ' . $this->rdv->heure . ' a été confirmé.',
+            'rdv_id' => $this->rdv->id,
+            'status' => 'confirme',
         ];
     }
 }

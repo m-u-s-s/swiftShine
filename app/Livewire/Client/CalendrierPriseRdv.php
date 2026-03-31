@@ -5,6 +5,7 @@ namespace App\Livewire\Client;
 use App\Models\Disponibilite;
 use App\Models\LimiteJournaliere;
 use App\Models\RendezVous;
+use Carbon\Carbon;
 use Livewire\Component;
 
 class CalendrierPriseRdv extends Component
@@ -18,16 +19,24 @@ class CalendrierPriseRdv extends Component
     public $vueSemaine = true;
     public $semaineOffset = 0;
     public $confirmation = false;
+    public $dureeEstimee = 90;
 
-    public function mount($employe_id, $selectedDate = null, $selectedHeure = null)
+    public function mount($employe_id, $selectedDate = null, $selectedHeure = null, $dureeEstimee = 90)
     {
         $this->employe_id = $employe_id;
         $this->selectedDate = $selectedDate;
         $this->selectedHeure = $selectedHeure;
+        $this->dureeEstimee = $dureeEstimee ?: 90;
+
         $this->chargerDisponibilites();
     }
 
     public function updatedFiltreJour()
+    {
+        $this->chargerDisponibilites();
+    }
+
+    public function updatedDureeEstimee()
     {
         $this->chargerDisponibilites();
     }
@@ -40,42 +49,60 @@ class CalendrierPriseRdv extends Component
         $fin = now()->endOfWeek()->addWeeks($this->semaineOffset);
 
         $raw = Disponibilite::where('user_id', $this->employe_id)
-            ->whereBetween('date', [$debut, $fin])
+            ->whereBetween('date', [$debut->toDateString(), $fin->toDateString()])
             ->orderBy('date')
             ->orderBy('heure_debut')
-            ->get();
+            ->get()
+            ->groupBy('date');
 
         $rdvs = RendezVous::where('employe_id', $this->employe_id)
-            ->whereBetween('date', [$debut, $fin])
+            ->whereBetween('date', [$debut->toDateString(), $fin->toDateString()])
             ->whereIn('status', ['confirme', 'en_attente'])
             ->get()
             ->groupBy('date');
 
         $limites = LimiteJournaliere::where('user_id', $this->employe_id)
-            ->whereBetween('date', [$debut, $fin])
+            ->whereBetween('date', [$debut->toDateString(), $fin->toDateString()])
             ->get()
             ->keyBy('date');
 
-        foreach ($raw as $item) {
-            $jour = $item->date;
-            $heure = $item->heure_debut;
-
-            $rdvsJour = $rdvs[$jour] ?? collect();
-
-            $dejaPris = $rdvsJour->contains(fn($r) => $r->heure === $heure);
-            if ($dejaPris) continue;
-
-            $limite = $limites[$jour] ?? null;
-
-            if ($limite && $limite->limite > 0) {
-                if ($rdvsJour->count() >= $limite->limite) continue;
-            }
-
+        foreach ($raw as $jour => $disposJour) {
             if ($this->filtreJour && strtolower(date('l', strtotime($jour))) !== strtolower($this->filtreJour)) {
                 continue;
             }
 
-            $this->disponibilites[$jour][] = $heure;
+            $rdvsJour = $rdvs[$jour] ?? collect();
+            $limite = $limites[$jour] ?? null;
+
+            if ($limite && $limite->limite > 0 && $rdvsJour->count() >= $limite->limite) {
+                continue;
+            }
+
+            foreach ($disposJour as $item) {
+                $heureDebutDispo = Carbon::parse($jour . ' ' . $item->heure_debut);
+                $heureFinDispo = Carbon::parse($jour . ' ' . $item->heure_fin);
+
+                $cursor = $heureDebutDispo->copy();
+
+                while ($cursor->copy()->addMinutes($this->dureeEstimee) <= $heureFinDispo) {
+                    $start = $cursor->copy();
+                    $end = $cursor->copy()->addMinutes($this->dureeEstimee);
+
+                    $overlap = $rdvsJour->contains(function ($rdv) use ($jour, $start, $end) {
+                        $rdvStart = Carbon::parse($jour . ' ' . $rdv->heure);
+                        $rdvDuration = $rdv->duree ?? $rdv->duree_estimee ?? 90;
+                        $rdvEnd = $rdvStart->copy()->addMinutes($rdvDuration);
+
+                        return $start < $rdvEnd && $end > $rdvStart;
+                    });
+
+                    if (! $overlap) {
+                        $this->disponibilites[$jour][] = $start->format('H:i');
+                    }
+
+                    $cursor->addMinutes(30);
+                }
+            }
         }
     }
 

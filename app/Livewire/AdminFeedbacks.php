@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Feedback;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Redirect;
 
@@ -19,7 +20,7 @@ class AdminFeedbacks extends Component
     public $status = '';
     public $reponse = [];
 
-    protected $queryString = ['employe_id', 'client_id', 'page'];
+    protected $queryString = ['employe_id', 'client_id', 'status', 'page'];
 
     public function updatedEmployeId()
     {
@@ -31,6 +32,11 @@ class AdminFeedbacks extends Component
         $this->resetPage();
     }
 
+    public function updatedStatus()
+    {
+        $this->resetPage();
+    }
+
     public function exportPdf()
     {
         Gate::authorize('export', Feedback::class);
@@ -38,6 +44,7 @@ class AdminFeedbacks extends Component
         $url = route('admin.feedbacks.export', [
             'employe_id' => $this->employe_id,
             'client_id' => $this->client_id,
+            'status' => $this->status,
         ]);
 
         return Redirect::away($url);
@@ -50,6 +57,7 @@ class AdminFeedbacks extends Component
         $url = route('admin.feedbacks.export.csv', [
             'employe_id' => $this->employe_id,
             'client_id' => $this->client_id,
+            'status' => $this->status,
         ]);
 
         return Redirect::away($url);
@@ -59,11 +67,25 @@ class AdminFeedbacks extends Component
     {
         Gate::authorize('respond', Feedback::class);
 
-        Feedback::find($key)?->update([
-            'reponse_admin' => $value
+        $feedback = Feedback::with(['client', 'rendezVous.employe'])->find($key);
+
+        if (! $feedback) {
+            $this->dispatch('toast', 'Feedback introuvable.', 'error');
+            return;
+        }
+
+        $feedback->update([
+            'reponse_admin' => $value,
         ]);
 
-        $this->dispatch('toast', 'Réponse enregistrée', 'success');
+        ActivityLogger::log('feedback_repondu_par_admin', $feedback, [
+            'feedback_id' => $feedback->id,
+            'note' => $feedback->note,
+            'client' => $feedback->client->name ?? null,
+            'employe' => $feedback->rendezVous->employe->name ?? null,
+        ]);
+
+        $this->dispatch('toast', 'Réponse enregistrée.', 'success');
     }
 
     public function filterByStatus($val)
@@ -75,20 +97,23 @@ class AdminFeedbacks extends Component
     public function render()
     {
         $feedbacks = Feedback::with(['client', 'rendezVous.employe'])
-            ->when($this->employe_id, fn($q) =>
-                $q->whereHas('rendezVous', fn($r) => $r->where('employe_id', $this->employe_id))
+            ->when(
+                $this->employe_id,
+                fn ($q) => $q->whereHas('rendezVous', fn ($r) => $r->where('employe_id', $this->employe_id))
             )
-            ->when($this->status, fn($q) =>
-                $q->whereHas('rendezVous', fn($r) => $r->where('status', $this->status))
+            ->when(
+                $this->status,
+                fn ($q) => $q->whereHas('rendezVous', fn ($r) => $r->where('status', $this->status))
             )
-            ->when($this->client_id, fn($q) =>
-                $q->where('client_id', $this->client_id)
+            ->when(
+                $this->client_id,
+                fn ($q) => $q->where('client_id', $this->client_id)
             )
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('created_at')
             ->paginate($this->perPage);
 
-        $employes = User::where('role', 'employe')->get();
-        $clients = User::where('role', 'client')->get();
+        $employes = User::where('role', 'employe')->orderBy('name')->get();
+        $clients = User::where('role', 'client')->orderBy('name')->get();
 
         return view('livewire.admin-feedbacks', compact('feedbacks', 'employes', 'clients'));
     }

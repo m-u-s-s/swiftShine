@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\User;
 use App\Models\RendezVous;
+use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -25,6 +26,11 @@ class ImportCsv extends Component
             'csv' => 'required|file|mimes:csv,txt',
         ]);
 
+        ActivityLogger::log('import_csv_execute', null, [
+            'type' => $this->type ?? 'inconnu',
+            'filename' => $this->csv?->getClientOriginalName(),
+        ]);
+
         $path = $this->csv->store('imports');
         $rows = array_map('str_getcsv', file(storage_path('app/' . $path)));
 
@@ -33,14 +39,18 @@ class ImportCsv extends Component
             return;
         }
 
-        $headers = array_map('strtolower', array_shift($rows));
+        $headers = array_map(fn ($header) => strtolower(trim($header)), array_shift($rows));
 
         $imported = 0;
         $skipped = 0;
+        $errors = [];
 
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
+            $lineNumber = $index + 2;
+
             if (count($row) !== count($headers)) {
                 $skipped++;
+                $errors[] = "Ligne {$lineNumber} : nombre de colonnes invalide.";
                 continue;
             }
 
@@ -56,6 +66,7 @@ class ImportCsv extends Component
 
                 if ($validator->fails()) {
                     $skipped++;
+                    $errors[] = "Ligne {$lineNumber} : client invalide.";
                     continue;
                 }
 
@@ -67,6 +78,7 @@ class ImportCsv extends Component
                 ]);
 
                 $imported++;
+                continue;
             }
 
             if ($this->type === 'rendez_vous') {
@@ -74,6 +86,9 @@ class ImportCsv extends Component
                     'confirme', 'confirmé' => 'confirme',
                     'refuse' => 'refuse',
                     'en attente', 'en_attente' => 'en_attente',
+                    'en route', 'en_route' => 'en_route',
+                    'sur place', 'sur_place' => 'sur_place',
+                    'termine', 'terminé' => 'termine',
                     default => 'en_attente',
                 };
 
@@ -84,12 +99,13 @@ class ImportCsv extends Component
                         'heure' => 'required',
                         'client_id' => 'required|exists:users,id',
                         'employe_id' => 'required|exists:users,id',
-                        'status' => 'required|in:confirme,refuse,en_attente',
+                        'status' => 'required|string|max:50',
                     ]
                 );
 
                 if ($validator->fails()) {
                     $skipped++;
+                    $errors[] = "Ligne {$lineNumber} : rendez-vous invalide.";
                     continue;
                 }
 
@@ -98,11 +114,13 @@ class ImportCsv extends Component
 
                 if (! $client || $client->role !== 'client') {
                     $skipped++;
+                    $errors[] = "Ligne {$lineNumber} : client invalide.";
                     continue;
                 }
 
                 if (! $employe || $employe->role !== 'employe') {
                     $skipped++;
+                    $errors[] = "Ligne {$lineNumber} : employé invalide.";
                     continue;
                 }
 
@@ -118,7 +136,25 @@ class ImportCsv extends Component
             }
         }
 
-        session()->flash('success', "✅ $imported ligne(s) importée(s), $skipped ignorée(s).");
+        ActivityLogger::log(
+            count($errors) > 0 ? 'import_csv_avec_erreurs' : 'import_csv_sans_erreur',
+            null,
+            [
+                'type' => $this->type ?? 'inconnu',
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors_count' => count($errors),
+                'errors_preview' => array_slice($errors, 0, 10),
+            ]
+        );
+
+        if (count($errors) > 0) {
+            session()->flash('warning', "Import terminé : {$imported} ligne(s) importée(s), {$skipped} ignorée(s).");
+        } else {
+            session()->flash('success', "✅ {$imported} ligne(s) importée(s), {$skipped} ignorée(s).");
+        }
+
+        $this->reset('csv');
     }
 
     public function render()

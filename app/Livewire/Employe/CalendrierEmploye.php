@@ -19,8 +19,10 @@ class CalendrierEmploye extends Component
         // Les rendez-vous (avec buffer)
         foreach ($user->rendezvousEnTantQuEmploye as $rdv) {
             $debut = $rdv->date . 'T' . $rdv->heure;
+            $duration = $rdv->duree ?? $rdv->duree_estimee ?? 90;
+
             $fin = \Carbon\Carbon::parse($debut)
-                ->addMinutes($rdv->duree)
+                ->addMinutes($duration)
                 ->addMinutes(30)
                 ->format('Y-m-d\TH:i:s');
 

@@ -9,8 +9,9 @@ use Carbon\Carbon;
 
 class AgendaHebdomadaire extends Component
 {
-    public $semaine; // ISO date (ex : 2025-07-08)
+    public $semaine;
     public $employe_id = '';
+    public $priorite = '';
 
     public function mount()
     {
@@ -19,12 +20,18 @@ class AgendaHebdomadaire extends Component
 
     public function semainePrecedente()
     {
-        $this->semaine = Carbon::parse($this->semaine)->subWeek()->startOfWeek()->format('Y-m-d');
+        $this->semaine = Carbon::parse($this->semaine)
+            ->subWeek()
+            ->startOfWeek()
+            ->format('Y-m-d');
     }
 
     public function semaineSuivante()
     {
-        $this->semaine = Carbon::parse($this->semaine)->addWeek()->startOfWeek()->format('Y-m-d');
+        $this->semaine = Carbon::parse($this->semaine)
+            ->addWeek()
+            ->startOfWeek()
+            ->format('Y-m-d');
     }
 
     public function render()
@@ -34,11 +41,8 @@ class AgendaHebdomadaire extends Component
 
         $rdvs = RendezVous::with('employe', 'client')
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->when(
-                $this->employe_id,
-                fn($q) =>
-                $q->where('employe_id', $this->employe_id)
-            )
+            ->when($this->employe_id, fn($q) => $q->where('employe_id', $this->employe_id))
+            ->when($this->priorite, fn($q) => $q->where('priorite', $this->priorite))
             ->orderBy('date')
             ->orderBy('heure')
             ->get();
@@ -49,11 +53,18 @@ class AgendaHebdomadaire extends Component
 
         foreach (range(0, 6) as $i) {
             $jour = $start->copy()->addDays($i);
+            $rdvsJour = $rdvsGrouped[$jour->toDateString()] ?? collect();
+
+            $totalMinutes = $rdvsJour->sum(function ($rdv) {
+                return ($rdv->duree ?? $rdv->duree_estimee ?? 90) + 30;
+            });
 
             $jours->push([
                 'label' => $jour->translatedFormat('l d/m'),
                 'date' => $jour->toDateString(),
-                'rdvs' => $rdvsGrouped[$jour->toDateString()] ?? collect(),
+                'rdvs' => $rdvsJour,
+                'total_minutes' => $totalMinutes,
+                'total_hours' => round($totalMinutes / 60, 1),
             ]);
         }
 

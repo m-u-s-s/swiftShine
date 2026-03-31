@@ -1,4 +1,12 @@
 <div class="space-y-4">
+    @if($dureeEstimee)
+    <div class="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        ⏱️ Les créneaux affichés tiennent compte d’une durée estimée de
+        <strong>{{ $dureeEstimee }} minutes</strong>.
+    </div>
+    @endif
+
+    
     {{-- 🎛️ Filtres / options --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>

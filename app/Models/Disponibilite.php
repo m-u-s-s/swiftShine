@@ -11,9 +11,13 @@ class Disponibilite extends Model
 
     protected $fillable = [
         'user_id',
-        'jour',
+        'date',
         'heure_debut',
         'heure_fin',
+    ];
+
+    protected $casts = [
+        'date' => 'date',
     ];
 
     public function user()

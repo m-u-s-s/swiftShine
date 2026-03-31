@@ -27,7 +27,7 @@ class UserFactory extends Factory
             'current_team_id' => null,
             'role' => 'client',
             'tva_number' => null,
-            'duree_creneau' => null,
+            'duree_creneau' => 90,
         ];
     }
 

@@ -152,8 +152,8 @@ class PrendreRendezVous extends Component
 
         $favoriteIds = Auth::user()->favoriteEmployes()->pluck('users.id')->toArray();
 
-        $favorites = $employes->filter(fn ($e) => in_array($e->id, $favoriteIds));
-        $others = $employes->reject(fn ($e) => in_array($e->id, $favoriteIds));
+        $favorites = $employes->filter(fn($e) => in_array($e->id, $favoriteIds));
+        $others = $employes->reject(fn($e) => in_array($e->id, $favoriteIds));
 
         return $favorites->concat($others)->values();
     }
@@ -318,10 +318,35 @@ class PrendreRendezVous extends Component
         $this->refreshEstimations();
     }
 
+    public function updatedZonesSpecifiques(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedPresenceAnimaux(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedAccesParking(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedMaterielFournit(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedMaterielSpecifique(): void
+    {
+        $this->refreshEstimations();
+    }
+
     protected function chargerEmployesDisponibles(): void
     {
         $this->employesDisponibles = $this->employes
-            ->map(fn ($employe) => [
+            ->map(fn($employe) => [
                 'id' => $employe->id,
                 'name' => $employe->name,
             ])->toArray();
@@ -479,6 +504,8 @@ class PrendreRendezVous extends Component
         $this->dispatch('toast', 'Votre demande a bien été envoyée.', 'success');
         $this->step = 5;
     }
+
+
 
     public function render()
     {

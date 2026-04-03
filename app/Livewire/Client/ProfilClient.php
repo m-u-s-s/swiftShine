@@ -31,9 +31,9 @@ class ProfilClient extends Component
             ->where('client_id', Auth::id())
             ->whereNotNull('adresse')
             ->where('adresse', '!=', '')
-            ->select('adresse', 'ville', 'code_postal')
-            ->distinct()
-            ->latest('date')
+            ->selectRaw('adresse, ville, code_postal, MAX(date) as last_date')
+            ->groupBy('adresse', 'ville', 'code_postal')
+            ->orderByDesc('last_date')
             ->limit(5)
             ->get();
     }

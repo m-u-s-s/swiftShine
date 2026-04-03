@@ -11,6 +11,7 @@ use App\Notifications\MissionReplanifieeNotification;
 use App\Support\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Cashier\Subscription;
 
 class AdminDashboard extends Component
 {
@@ -694,7 +695,7 @@ class AdminDashboard extends Component
 
     public function getActiveSubscriptionsCountProperty(): int
     {
-        return \App\Models\Subscription::where('status', 'active')->count();
+        return Subscription::where('stripe_status', 'active')->count();
     }
 
     public function getPremiumClientsProperty()

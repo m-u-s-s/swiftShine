@@ -1,3 +1,5 @@
+<x-guest-layout>
+
 <div class="bg-slate-50 text-slate-900">
     {{-- HERO --}}
     <section class="relative overflow-hidden">
@@ -343,3 +345,7 @@
         </div>
     </section>
 </div>
+
+
+    
+</x-guest-layout>

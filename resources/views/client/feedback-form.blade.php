@@ -16,7 +16,7 @@
         </div>
     @endif
 
-    <form action="{{ route('client.feedback.store', $rendezVous->id) }}" method="POST" class="space-y-4">
+    <form action="{{ route('feedback.store', $rendezVous->id) }}" method="POST" class="space-y-4">
         @csrf
 
         <div>

@@ -17,6 +17,6 @@ class PremiumOfferPage extends Component
         return view('livewire.client.premium-offer-page', [
             'isPremium' => $this->isPremiumClient(),
             'premiumPrice' => 29,
-        ])->layout('layouts.app');
+        ])->layout('layouts.guest');
     }
 }

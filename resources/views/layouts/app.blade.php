@@ -40,9 +40,11 @@
     <audio id="error-sound" src="{{ asset('sounds/error.mp3') }}" preload="auto"></audio>
 
     <!-- ✅ Notifications Jetstream Livewire -->
+    @auth
     @if (class_exists(\App\Livewire\Notifications::class))
     @livewire('notifications')
     @endif
+    @endauth
 
     @stack('modals')
     @livewireScripts

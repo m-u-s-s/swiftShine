@@ -15,6 +15,10 @@ class Notifications extends Component
 
     public function markAsRead(string $notificationId): void
     {
+        if (! Auth::check()) {
+            return;
+        }
+
         $notification = Auth::user()
             ->notifications()
             ->where('id', $notificationId)
@@ -27,6 +31,10 @@ class Notifications extends Component
 
     public function markAllAsRead(): void
     {
+        if (! Auth::check()) {
+            return;
+        }
+
         Auth::user()
             ->unreadNotifications
             ->markAsRead();
@@ -34,6 +42,10 @@ class Notifications extends Component
 
     public function deleteNotification(string $notificationId): void
     {
+        if (! Auth::check()) {
+            return;
+        }
+
         $notification = Auth::user()
             ->notifications()
             ->where('id', $notificationId)
@@ -46,6 +58,10 @@ class Notifications extends Component
 
     public function getUnreadCountProperty(): int
     {
+        if (! Auth::check()) {
+            return 0;
+        }
+
         return Auth::user()
             ->unreadNotifications()
             ->count();
@@ -53,6 +69,10 @@ class Notifications extends Component
 
     public function getNotificationsProperty()
     {
+        if (! Auth::check()) {
+            return collect();
+        }
+
         return Auth::user()
             ->notifications()
             ->latest()

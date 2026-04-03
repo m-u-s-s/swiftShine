@@ -173,14 +173,7 @@
                         <span class="font-semibold text-emerald-700">Actif</span>
                     </div>
 
-                    @if($activeSubscription?->renewal_at)
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500">Renouvellement</span>
-                        <span class="font-semibold text-slate-800">
-                            {{ optional($activeSubscription->renewal_at)->format('d/m/Y') }}
-                        </span>
-                    </div>
-                    @elseif(auth()->user()->premium_renewal_at)
+                    @if(auth()->user()->premium_renewal_at)
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500">Renouvellement</span>
                         <span class="font-semibold text-slate-800">

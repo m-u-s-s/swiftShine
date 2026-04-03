@@ -6,7 +6,7 @@
     </div>
     @endif
 
-    
+
     {{-- 🎛️ Filtres / options --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -67,11 +67,11 @@
 
     @if($confirmation)
     <div
-        x-data=\"{ show: true }\"
-        x-init=\"setTimeout(()=> show = false, 4000)\"
-        x-show=\"show\"
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 4000)"
+        x-show="show"
         x-transition
-        class=\"bg-green-100 border border-green-300 text-green-700 px-4 py-2 rounded mt-6 text-sm animate-pulse\">
+        class="bg-green-100 border border-green-300 text-green-700 px-4 py-2 rounded mt-6 text-sm animate-pulse">
         ✅ Vous avez sélectionné le {{ \Carbon\Carbon::parse($selectedDate)->translatedFormat('l d F') }} à {{ $selectedHeure }}.
     </div>
     @endif

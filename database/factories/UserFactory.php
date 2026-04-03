@@ -43,7 +43,7 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
             'tva_number' => null,
-            'duree_creneau' => null,
+            'duree_creneau' => 90,
         ]);
     }
 
@@ -52,7 +52,7 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'client',
             'tva_number' => null,
-            'duree_creneau' => null,
+            'duree_creneau' => 90,
         ]);
     }
 
@@ -61,15 +61,16 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'employe',
             'tva_number' => null,
-            'duree_creneau' => 30,
+            'duree_creneau' => 90,
         ]);
     }
 
     public function societe(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => 'client',
+            'role' => 'societe',
             'tva_number' => fake()->numerify('BE0#########'),
+            'duree_creneau' => 90,
         ]);
     }
 

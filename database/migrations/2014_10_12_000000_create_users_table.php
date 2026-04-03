@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('tva_number')->nullable();
             $table->integer('duree_creneau')->default(90);
 
+            $table->string('plan_type')->default('standard');
+            $table->string('plan_status')->default('inactive');
+            $table->timestamp('premium_started_at')->nullable();
+            $table->timestamp('premium_renewal_at')->nullable();
+
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();
@@ -27,6 +32,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('role');
+            $table->index('plan_type');
+            $table->index('plan_status');
         });
     }
 

@@ -215,9 +215,9 @@ class AdminDashboard extends Component
         $missions = RendezVous::where('status', 'termine')->get();
 
         return [
-            'sans_rapport' => $missions->filter(fn ($rdv) => blank($rdv->commentaire_fin_mission))->count(),
-            'sans_photos_apres' => $missions->filter(fn ($rdv) => empty($rdv->photos_apres))->count(),
-            'avec_duree_reelle' => $missions->filter(fn ($rdv) => !is_null($rdv->duree_reelle))->count(),
+            'sans_rapport' => $missions->filter(fn($rdv) => blank($rdv->commentaire_fin_mission))->count(),
+            'sans_photos_apres' => $missions->filter(fn($rdv) => empty($rdv->photos_apres))->count(),
+            'avec_duree_reelle' => $missions->filter(fn($rdv) => !is_null($rdv->duree_reelle))->count(),
         ];
     }
 
@@ -276,7 +276,7 @@ class AdminDashboard extends Component
             return [
                 'avg_estimated' => round($missions->avg('duree_estimee')),
                 'avg_real' => round($missions->avg('duree_reelle')),
-                'avg_gap' => round($missions->avg(fn ($rdv) => $rdv->duree_reelle - $rdv->duree_estimee)),
+                'avg_gap' => round($missions->avg(fn($rdv) => $rdv->duree_reelle - $rdv->duree_estimee)),
             ];
         });
     }
@@ -293,15 +293,16 @@ class AdminDashboard extends Component
                         ->get();
 
                     $avgGap = null;
-                    $withDurations = $missions->filter(fn ($rdv) =>
+                    $withDurations = $missions->filter(
+                        fn($rdv) =>
                         !is_null($rdv->duree_estimee) && !is_null($rdv->duree_reelle)
                     );
 
                     if ($withDurations->isNotEmpty()) {
-                        $avgGap = round($withDurations->avg(fn ($rdv) => $rdv->duree_reelle - $rdv->duree_estimee));
+                        $avgGap = round($withDurations->avg(fn($rdv) => $rdv->duree_reelle - $rdv->duree_estimee));
                     }
 
-                    $feedbacks = $missions->filter(fn ($rdv) => $rdv->feedback)->pluck('feedback');
+                    $feedbacks = $missions->filter(fn($rdv) => $rdv->feedback)->pluck('feedback');
                     $avgNote = $feedbacks->isNotEmpty() ? round($feedbacks->avg('note'), 1) : null;
 
                     return [
@@ -357,11 +358,11 @@ class AdminDashboard extends Component
                 ->groupBy('service_type')
                 ->map(function ($items) {
                     return [
-                        'avg_gap' => round($items->avg(fn ($rdv) => $rdv->duree_reelle - $rdv->duree_estimee)),
+                        'avg_gap' => round($items->avg(fn($rdv) => $rdv->duree_reelle - $rdv->duree_estimee)),
                         'count' => $items->count(),
                     ];
                 })
-                ->filter(fn ($row) => $row['count'] >= 3 && $row['avg_gap'] >= 20)
+                ->filter(fn($row) => $row['count'] >= 3 && $row['avg_gap'] >= 20)
                 ->sortByDesc('avg_gap');
         });
     }
@@ -374,8 +375,8 @@ class AdminDashboard extends Component
             return [
                 'en_attente' => RendezVous::where('status', 'en_attente')->count(),
                 'urgentes_vieilles' => $this->urgencesVieillissantes->count(),
-                'missions_longues' => $this->qualiteMissions->filter(fn ($item) => $item['is_long_overrun'])->count(),
-                'employes_surcharges' => $this->chargeEmployes->filter(fn ($item) => $item['minutes'] >= 480)->count(),
+                'missions_longues' => $this->qualiteMissions->filter(fn($item) => $item['is_long_overrun'])->count(),
+                'employes_surcharges' => $this->chargeEmployes->filter(fn($item) => $item['minutes'] >= 480)->count(),
                 'missions_du_jour' => RendezVous::whereDate('date', $today)->count(),
                 'missions_terminees_mois' => RendezVous::where('status', 'termine')
                     ->whereMonth('date', now()->month)
@@ -388,7 +389,7 @@ class AdminDashboard extends Component
     {
         $recommendations = collect();
 
-        $surcharges = $this->chargeEmployes->filter(fn ($item) => $item['minutes'] >= 480);
+        $surcharges = $this->chargeEmployes->filter(fn($item) => $item['minutes'] >= 480);
         foreach ($surcharges as $item) {
             $recommendations->push([
                 'level' => 'danger',
@@ -624,7 +625,7 @@ class AdminDashboard extends Component
                     'same_city_bonus' => $score['same_city_bonus'],
                 ];
             })
-            ->filter(fn ($row) => ! $row['has_conflict'])
+            ->filter(fn($row) => ! $row['has_conflict'])
             ->sortBy('score')
             ->values()
             ->take(5)
@@ -659,7 +660,7 @@ class AdminDashboard extends Component
             ->whereDate('date', $date)
             ->value('limite');
 
-        $sameCityBonus = $rdvsJour->contains(fn ($item) => filled($rdv->ville) && $item->ville === $rdv->ville) ? -40 : 0;
+        $sameCityBonus = $rdvsJour->contains(fn($item) => filled($rdv->ville) && $item->ville === $rdv->ville) ? -40 : 0;
 
         $score = $loadMinutes + ($rdvsJour->count() * 25) + $sameCityBonus;
 
@@ -674,6 +675,71 @@ class AdminDashboard extends Component
             'has_conflict' => $hasConflict,
             'same_city_bonus' => $sameCityBonus,
         ];
+    }
+
+    public function getPremiumClientsCountProperty(): int
+    {
+        return \App\Models\User::where('role', 'client')
+            ->where('plan_type', 'premium')
+            ->where('plan_status', 'active')
+            ->count();
+    }
+
+    public function getStandardClientsCountProperty(): int
+    {
+        return \App\Models\User::where('role', 'client')
+            ->where('plan_type', 'standard')
+            ->count();
+    }
+
+    public function getActiveSubscriptionsCountProperty(): int
+    {
+        return \App\Models\Subscription::where('status', 'active')->count();
+    }
+
+    public function getPremiumClientsProperty()
+    {
+        return \App\Models\User::with('subscriptions')
+            ->where('role', 'client')
+            ->where('plan_type', 'premium')
+            ->where('plan_status', 'active')
+            ->latest()
+            ->limit(8)
+            ->get();
+    }
+
+    public function getPremiumRendezVousProperty()
+    {
+        return \App\Models\RendezVous::with(['client', 'employe'])
+            ->whereHas('client', function ($q) {
+                $q->where('plan_type', 'premium')
+                    ->where('plan_status', 'active');
+            })
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->limit(10)
+            ->get();
+    }
+
+    public function getRendezVousSansEmployeProperty()
+    {
+        return \App\Models\RendezVous::with('client')
+            ->whereNull('employe_id')
+            ->whereIn('status', ['en_attente', 'confirme'])
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->limit(10)
+            ->get();
+    }
+
+    public function getPremiumClientsWithoutFavoritesProperty()
+    {
+        return \App\Models\User::where('role', 'client')
+            ->where('plan_type', 'premium')
+            ->where('plan_status', 'active')
+            ->whereDoesntHave('favoriteEmployes')
+            ->limit(10)
+            ->get();
     }
 
     public function render()
@@ -701,6 +767,13 @@ class AdminDashboard extends Component
             'urgencesVieillissantes' => $this->urgencesVieillissantes,
             'servicesSousEstimes' => $this->servicesSousEstimes,
             'suggestedEmployees' => $this->suggestedEmployees,
+            'premiumClientsCount' => $this->premiumClientsCount,
+            'standardClientsCount' => $this->standardClientsCount,
+            'activeSubscriptionsCount' => $this->activeSubscriptionsCount,
+            'premiumClients' => $this->premiumClients,
+            'premiumRendezVous' => $this->premiumRendezVous,
+            'rendezVousSansEmploye' => $this->rendezVousSansEmploye,
+            'premiumClientsWithoutFavorites' => $this->premiumClientsWithoutFavorites,
         ])->layout('layouts.app');
     }
 }

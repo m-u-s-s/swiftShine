@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('client_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('employe_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('employe_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->date('date');
             $table->time('heure');
@@ -69,6 +69,8 @@ return new class extends Migration
             $table->index('ville');
             $table->index(['employe_id', 'date']);
             $table->index(['client_id', 'date']);
+            $table->index('devis_estime');
+            $table->index('is_recurrent');
         });
     }
 

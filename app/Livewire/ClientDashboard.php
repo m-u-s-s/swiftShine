@@ -13,10 +13,29 @@ class ClientDashboard extends Component
 {
     use WithPagination;
 
-    public $tri = 'asc';
+    public string $tri = 'asc';
     public $editRdvId = null;
     public $editDate = null;
     public $editHeure = null;
+
+    protected $paginationTheme = 'tailwind';
+
+    public function isPremiumClient(): bool
+    {
+        return Auth::check() && Auth::user()->isPremium();
+    }
+
+    public function getActiveSubscriptionProperty()
+    {
+        return Auth::user()?->subscription('default');
+    }
+
+    public function getFavoriteEmployesProperty()
+    {
+        return Auth::user()?->favoriteEmployes()
+            ->orderBy('name')
+            ->get() ?? collect();
+    }
 
     public function getRendezVousAvenirProperty()
     {
@@ -41,9 +60,20 @@ class ClientDashboard extends Component
 
     public function getDernierRendezVousProperty()
     {
-        return RendezVous::where('client_id', Auth::id())
+        return RendezVous::with('employe')
+            ->where('client_id', Auth::id())
             ->latest('date')
             ->latest('heure')
+            ->first();
+    }
+
+    public function getProchainRendezVousProperty()
+    {
+        return RendezVous::with(['employe', 'feedback'])
+            ->where('client_id', Auth::id())
+            ->whereDate('date', '>=', now()->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure')
             ->first();
     }
 
@@ -62,13 +92,15 @@ class ClientDashboard extends Component
 
     public function getStatsClientProperty()
     {
-        $all = RendezVous::where('client_id', Auth::id())->get();
+        $all = RendezVous::with('feedback')
+            ->where('client_id', Auth::id())
+            ->get();
 
         return [
             'total' => $all->count(),
             'avenir' => $all->where('date', '>=', now()->toDateString())->count(),
             'termine' => $all->where('status', 'termine')->count(),
-            'feedbacks' => $all->filter(fn($rdv) => $rdv->feedback)->count(),
+            'feedbacks' => $all->filter(fn ($rdv) => $rdv->feedback)->count(),
         ];
     }
 
@@ -77,6 +109,11 @@ class ClientDashboard extends Component
         $rdv = RendezVous::findOrFail($id);
 
         Gate::authorize('update', $rdv);
+
+        if (! $rdv->canStillBeEditedByClient()) {
+            $this->dispatch('toast', 'Ce rendez-vous ne peut plus être modifié.', 'error');
+            return;
+        }
 
         $this->editRdvId = $rdv->id;
         $this->editDate = $rdv->date?->format('Y-m-d') ?? $rdv->date;
@@ -98,6 +135,11 @@ class ClientDashboard extends Component
 
         Gate::authorize('update', $rdv);
 
+        if (! $rdv->canStillBeEditedByClient()) {
+            $this->dispatch('toast', 'Ce rendez-vous ne peut plus être modifié.', 'error');
+            return;
+        }
+
         $original = [
             'date' => $rdv->date,
             'heure' => $rdv->heure,
@@ -110,10 +152,6 @@ class ClientDashboard extends Component
         $rdv->status = 'en_attente';
 
         $rdv->resetNotificationTrackingIfNeeded($original);
-        if (in_array($rdv->status, ['en_route', 'sur_place', 'termine', 'refuse'])) {
-            $this->dispatch('toast', 'Ce rendez-vous ne peut plus être modifié.', 'error');
-            return;
-        }
         $rdv->save();
 
         ActivityLogger::log('rdv_modifie_par_client', $rdv, [
@@ -135,6 +173,11 @@ class ClientDashboard extends Component
 
         Gate::authorize('delete', $rdv);
 
+        if (! $rdv->canStillBeEditedByClient()) {
+            $this->dispatch('toast', 'Ce rendez-vous ne peut plus être annulé.', 'error');
+            return;
+        }
+
         ActivityLogger::log('rdv_annule_par_client', $rdv, [
             'date' => $rdv->date?->format('Y-m-d') ?? (string) $rdv->date,
             'heure' => $rdv->heure,
@@ -142,10 +185,7 @@ class ClientDashboard extends Component
         ]);
 
         $rdv->delete();
-        if (in_array($rdv->status, ['en_route', 'sur_place', 'termine', 'refuse'])) {
-            $this->dispatch('toast', 'Ce rendez-vous ne peut plus être annulé.', 'error');
-            return;
-        }
+
         $this->dispatch('toast', 'Rendez-vous annulé.', 'error');
     }
 
@@ -154,10 +194,13 @@ class ClientDashboard extends Component
         return view('livewire.client-dashboard', [
             'avenir' => $this->rendezVousAvenir,
             'passe' => $this->rendezVousPasse,
-            'total' => $this->statsClient['total'],
             'statsClient' => $this->statsClient,
             'dernierRendezVous' => $this->dernierRendezVous,
+            'prochainRendezVous' => $this->prochainRendezVous,
             'adressesRecentes' => $this->adressesRecentes,
+            'favoriteEmployes' => $this->favoriteEmployes,
+            'activeSubscription' => $this->activeSubscription,
+            'isPremium' => $this->isPremiumClient(),
         ])->layout('layouts.app');
     }
 }

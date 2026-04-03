@@ -36,6 +36,150 @@
             <p class="text-sm text-gray-500">Terminées ce mois</p>
             <p class="text-2xl font-bold text-emerald-700">{{ $adminKpis['missions_terminees_mois'] }}</p>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <p class="text-sm text-slate-500">Clients Premium actifs</p>
+                <p class="text-2xl font-bold text-amber-600 mt-1">{{ $premiumClientsCount }}</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <p class="text-sm text-slate-500">Clients Standard</p>
+                <p class="text-2xl font-bold text-slate-800 mt-1">{{ $standardClientsCount }}</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <p class="text-sm text-slate-500">Abonnements actifs</p>
+                <p class="text-2xl font-bold text-emerald-600 mt-1">{{ $activeSubscriptionsCount }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Rendez-vous sans employé attribué</h3>
+                <p class="text-sm text-slate-500">Demandes standard à traiter rapidement</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            @forelse($rendezVousSansEmploye as $rdv)
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-slate-900">
+                        {{ $rdv->client->name ?? 'Client' }} — {{ ucfirst(str_replace('_', ' ', $rdv->service_type ?? 'Service')) }}
+                    </p>
+                    <p class="text-sm text-slate-500 mt-1">
+                        {{ $rdv->date }} à {{ substr((string) $rdv->heure, 0, 5) }}
+                    </p>
+                    <p class="text-sm text-slate-500">
+                        {{ $rdv->adresse ?? 'Adresse non précisée' }}, {{ $rdv->ville ?? '—' }}
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <x-badge :status="$rdv->status" />
+                    <x-priority-badge :priority="$rdv->priorite" />
+                </div>
+            </div>
+            @empty
+            <div class="text-sm text-slate-500 italic">
+                Aucun rendez-vous sans employé attribué.
+            </div>
+            @endforelse
+        </div>
+    </div>
+
+
+    <div class="bg-white rounded-3xl border border-amber-200 shadow-sm p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Rendez-vous Premium</h3>
+                <p class="text-sm text-slate-500">Demandes clients premium et suivi personnalisé</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            @forelse($premiumRendezVous as $rdv)
+            <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-slate-900">
+                        ★ {{ $rdv->client->name ?? 'Client Premium' }}
+                    </p>
+                    <p class="text-sm text-slate-600 mt-1">
+                        {{ ucfirst(str_replace('_', ' ', $rdv->service_type ?? 'Service')) }} — {{ $rdv->date }} à {{ substr((string) $rdv->heure, 0, 5) }}
+                    </p>
+                    <p class="text-sm text-slate-500">
+                        Employé : {{ $rdv->employe->name ?? 'À confirmer' }}
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <x-badge :status="$rdv->status" />
+                    <x-priority-badge :priority="$rdv->priorite" />
+                </div>
+            </div>
+            @empty
+            <div class="text-sm text-slate-500 italic">
+                Aucun rendez-vous premium à venir.
+            </div>
+            @endforelse
+        </div>
+    </div>
+
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Clients Premium actifs</h3>
+                <p class="text-sm text-slate-500">Suivi des clients à forte valeur</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            @forelse($premiumClients as $client)
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-slate-900">{{ $client->name }}</p>
+                    <p class="text-sm text-slate-500">{{ $client->email }}</p>
+                </div>
+
+                <div class="text-right">
+                    <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+                        Premium actif
+                    </span>
+                </div>
+            </div>
+            @empty
+            <div class="text-sm text-slate-500 italic">
+                Aucun client premium actif.
+            </div>
+            @endforelse
+        </div>
+    </div>
+
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Premium sans employés favoris</h3>
+                <p class="text-sm text-slate-500">Clients premium à accompagner pour mieux personnaliser leur expérience</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            @forelse($premiumClientsWithoutFavorites as $client)
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p class="font-semibold text-slate-900">{{ $client->name }}</p>
+                <p class="text-sm text-slate-500">{{ $client->email }}</p>
+            </div>
+            @empty
+            <div class="text-sm text-slate-500 italic">
+                Tous les clients premium ont déjà au moins un employé favori.
+            </div>
+            @endforelse
+        </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">

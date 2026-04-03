@@ -17,7 +17,7 @@ class RendezVousFactory extends Factory
             'employe_id' => User::factory()->employe(),
             'date' => fake()->date(),
             'heure' => fake()->time('H:i'),
-            'duree' => 30,
+            'duree' => 90,
             'motif' => fake()->sentence(),
             'status' => 'en_attente',
         ];

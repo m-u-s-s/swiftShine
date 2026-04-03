@@ -121,4 +121,9 @@ class RendezVous extends Model
     {
         return in_array($this->status, ['refuse', 'termine']);
     }
+
+    public function canStillBeEditedByClient(): bool
+    {
+        return ! in_array($this->status, ['en_route', 'sur_place', 'termine', 'refuse']);
+    }
 }

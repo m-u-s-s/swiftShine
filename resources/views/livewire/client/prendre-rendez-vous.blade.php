@@ -1,334 +1,374 @@
-<div class="space-y-6" x-data="{ step: @entangle('step') }">
-    <div class="space-y-2">
-        <h2 class="text-2xl font-bold text-gray-800">🧼 Réserver un service de nettoyage</h2>
-        <p class="text-sm text-gray-500">
-            Réservez votre intervention en quelques étapes simples.
-        </p>
-    </div>
-
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-        <div class="rounded-lg px-3 py-2 text-center border" :class="step === 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">1. Service</div>
-        <div class="rounded-lg px-3 py-2 text-center border" :class="step === 2 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">2. Adresse</div>
-        <div class="rounded-lg px-3 py-2 text-center border" :class="step === 3 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">3. Employé</div>
-        <div class="rounded-lg px-3 py-2 text-center border" :class="step === 4 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">4. Créneau</div>
-        <div class="rounded-lg px-3 py-2 text-center border" :class="step === 5 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">5. Confirmation</div>
-    </div>
-
-    <div x-show="step === 1" x-transition class="bg-white rounded-xl border shadow p-5 space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800">🧽 Quel service vous faut-il ?</h3>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Type de service</label>
-            <select wire:model="service_type" class="w-full border-gray-300 rounded-lg shadow-sm">
-                <option value="">-- Sélectionnez un service --</option>
-                @foreach($services as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-            @error('service_type') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Type de lieu</label>
-                <select wire:model="type_lieu" class="w-full border-gray-300 rounded-lg shadow-sm">
-                    <option value="">-- Sélectionnez --</option>
-                    @foreach($typesLieux as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('type_lieu') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
-                <select wire:model="frequence" class="w-full border-gray-300 rounded-lg shadow-sm">
-                    <option value="">-- Sélectionnez --</option>
-                    @foreach($frequences as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('frequence') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Surface / nombre de pièces</label>
-            <input
-                type="text"
-                wire:model="surface"
-                placeholder="Ex. 120 m², 4 pièces, 2 étages..."
-                class="w-full border-gray-300 rounded-lg shadow-sm">
-            @error('surface') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <p class="text-sm font-medium text-gray-700 mb-2">Options de prestation</p>
-                <div class="space-y-2">
-                    @foreach($optionsPrestationsDisponibles as $value => $label)
-                        <label class="flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" wire:model="options_prestation" value="{{ $value }}" class="rounded border-gray-300">
-                            {{ $label }}
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-
-            <div>
-                <p class="text-sm font-medium text-gray-700 mb-2">Zones spécifiques</p>
-                <div class="space-y-2">
-                    @foreach($zonesDisponibles as $value => $label)
-                        <label class="flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" wire:model="zones_specifiques" value="{{ $value }}" class="rounded border-gray-300">
-                            {{ $label }}
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-
-            <div>
-                <p class="text-sm font-medium text-gray-700 mb-2">Matériel / produits</p>
-                <div class="space-y-2">
-                    @foreach($materielsDisponibles as $value => $label)
-                        <label class="flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" wire:model="materiel_specifique" value="{{ $value }}" class="rounded border-gray-300">
-                            {{ $label }}
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-
-        @if($duree_estimee)
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                ⏱️ Durée estimée :
-                <strong>{{ $duree_estimee }} minutes</strong>
-            </div>
-        @endif
-
-        @if($devis_estime)
-            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-800">
-                💶 Devis estimatif :
-                <strong>{{ number_format($devis_estime, 2, ',', ' ') }} €</strong>
-            </div>
-        @endif
-
-        <div class="text-right">
-            <button wire:click="nextStep" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                Suivant →
-            </button>
-        </div>
-    </div>
-
-    <div x-show="step === 2" x-transition class="bg-white rounded-xl border shadow p-5 space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800">📍 Où doit avoir lieu l’intervention ?</h3>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-            <input type="text" wire:model="adresse" placeholder="Rue, numéro, boîte..." class="w-full border-gray-300 rounded-lg shadow-sm">
-            @error('adresse') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                <input type="text" wire:model="ville" class="w-full border-gray-300 rounded-lg shadow-sm">
-                @error('ville') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
-                <input type="text" wire:model="code_postal" class="w-full border-gray-300 rounded-lg shadow-sm">
-                @error('code_postal') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone de contact</label>
-                <input type="text" wire:model="telephone_client" class="w-full border-gray-300 rounded-lg shadow-sm">
-                @error('telephone_client') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                <select wire:model="priorite" class="w-full border-gray-300 rounded-lg shadow-sm">
-                    <option value="">-- Sélectionnez --</option>
-                    @foreach($priorites as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('priorite') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" wire:model="presence_animaux" class="rounded border-gray-300">
-                Présence d’animaux
-            </label>
-
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" wire:model="acces_parking" class="rounded border-gray-300">
-                Parking disponible
-            </label>
-
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" wire:model="materiel_fournit" class="rounded border-gray-300">
-                Matériel fourni par le client
-            </label>
-
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" wire:model="is_recurrent" class="rounded border-gray-300">
-                Prestation récurrente
-            </label>
-
-            <label class="flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" wire:model="is_favorite_slot" class="rounded border-gray-300">
-                Sauvegarder comme créneau favori
-            </label>
-        </div>
-
-        @if($is_recurrent)
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Règle de récurrence</label>
-                <select wire:model="recurrence_rule" class="w-full border-gray-300 rounded-lg shadow-sm">
-                    <option value="">-- Sélectionnez --</option>
-                    <option value="weekly">Chaque semaine</option>
-                    <option value="biweekly">Toutes les 2 semaines</option>
-                    <option value="monthly">Chaque mois</option>
-                </select>
-            </div>
-        @endif
-
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Photos de référence (optionnel)
-                </label>
-                <input type="file" wire:model="photos" multiple accept="image/*" class="w-full text-sm border-gray-300 rounded-lg shadow-sm">
-                @error('photos.*') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-
-            @if($photos)
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    @foreach($photos as $index => $photo)
-                        <div class="relative border rounded-lg p-2 bg-gray-50">
-                            <img src="{{ $photo->temporaryUrl() }}" alt="Aperçu photo" class="w-full h-28 object-cover rounded">
-                            <button type="button" wire:click="removePhoto({{ $index }})" class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                                ✕
-                            </button>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div class="xl:col-span-2">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 md:px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-sky-600">
+                                Réservation {{ $this->isPremiumClient() ? 'Premium' : 'Standard' }}
+                            </p>
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">
+                                Planifier une prestation
+                            </h1>
+                            <p class="text-sm text-slate-500 mt-1">
+                                Remplissez votre demande en quelques étapes.
+                            </p>
                         </div>
-                    @endforeach
+
+                        @if($this->isPremiumClient())
+                            <div class="inline-flex items-center gap-2 rounded-full bg-amber-50 text-amber-700 px-4 py-2 text-sm font-semibold border border-amber-200">
+                                <span>★</span>
+                                <span>Client Premium actif</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="mt-6">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            @php
+                                $steps = [
+                                    1 => 'Service',
+                                    2 => 'Détails',
+                                    3 => 'Coordonnées',
+                                    4 => $this->isPremiumClient() ? 'Employé & créneau' : 'Créneau',
+                                    5 => 'Confirmation',
+                                ];
+                            @endphp
+
+                            @foreach($steps as $number => $label)
+                                <div class="rounded-2xl border px-4 py-3 text-sm transition
+                                    {{ $step === $number
+                                        ? 'border-sky-500 bg-sky-50 text-sky-700'
+                                        : ($step > $number
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            : 'border-slate-200 bg-white text-slate-500')
+                                    }}">
+                                    <div class="font-semibold">Étape {{ $number }}</div>
+                                    <div class="text-xs mt-1">{{ $label }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
-            @endif
+
+                <div class="px-6 md:px-8 py-8">
+                    @if($step === 1)
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Type de service</label>
+                                    <select wire:model.live="service_type" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir un service</option>
+                                        @foreach($services as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('service_type') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Type de lieu</label>
+                                    <select wire:model.live="type_lieu" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir un type de lieu</option>
+                                        @foreach($typesLieu as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('type_lieu') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Fréquence</label>
+                                    <select wire:model.live="frequence" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir une fréquence</option>
+                                        @foreach($frequences as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('frequence') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Surface</label>
+                                    <select wire:model.live="surface" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir une surface</option>
+                                        @foreach($surfaces as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('surface') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($step === 2)
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-3">Options</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    @foreach($optionsDisponibles as $key => $label)
+                                        <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+                                            <input type="checkbox" wire:model.live="options_prestation" value="{{ $key }}">
+                                            <span class="text-sm text-slate-700">{{ $label }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-3">Zones à traiter</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    @foreach($zonesDisponibles as $key => $label)
+                                        <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+                                            <input type="checkbox" wire:model.live="zones_specifiques" value="{{ $key }}">
+                                            <span class="text-sm text-slate-700">{{ $label }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Matériel spécifique</label>
+                                    <input type="text" wire:model.defer="materiel_specifique" class="w-full rounded-2xl border-slate-300">
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                                    <label class="flex items-center gap-3">
+                                        <input type="checkbox" wire:model.live="presence_animaux">
+                                        <span class="text-sm text-slate-700">Présence d’animaux</span>
+                                    </label>
+
+                                    <label class="flex items-center gap-3">
+                                        <input type="checkbox" wire:model.live="acces_parking">
+                                        <span class="text-sm text-slate-700">Parking / accès facile</span>
+                                    </label>
+
+                                    <label class="flex items-center gap-3">
+                                        <input type="checkbox" wire:model.live="materiel_fournit">
+                                        <span class="text-sm text-slate-700">Matériel fourni sur place</span>
+                                    </label>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Photos de référence</label>
+                                    <input type="file" wire:model="photos" multiple class="w-full rounded-2xl border-slate-300">
+                                    @error('photos.*') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                                <textarea wire:model.defer="commentaire_client" rows="5" class="w-full rounded-2xl border-slate-300"></textarea>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($step === 3)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Adresse</label>
+                                <input type="text" wire:model.defer="adresse" class="w-full rounded-2xl border-slate-300">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Ville</label>
+                                <input type="text" wire:model.defer="ville" class="w-full rounded-2xl border-slate-300">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Code postal</label>
+                                <input type="text" wire:model.defer="code_postal" class="w-full rounded-2xl border-slate-300">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Téléphone</label>
+                                <input type="text" wire:model.defer="telephone_client" class="w-full rounded-2xl border-slate-300">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Priorité</label>
+                                <select wire:model.defer="priorite" class="w-full rounded-2xl border-slate-300">
+                                    @foreach($priorites as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($step === 4)
+                        <div class="space-y-6">
+                            @if($this->isPremiumClient())
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Employé</label>
+                                    <select wire:model.live="employe_id" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir un employé</option>
+                                        @foreach($employesDisponibles as $employe)
+                                            <option value="{{ $employe['id'] }}">{{ $employe['name'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('employe_id') <p class="text-sm text-red-600 mt-2">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Date souhaitée</label>
+                                    <input type="date" wire:model.live="rdvDate" min="{{ now()->toDateString() }}" class="w-full rounded-2xl border-slate-300">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Heure souhaitée</label>
+                                    <select wire:model.defer="rdvHeure" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir un créneau</option>
+                                        @foreach($creneauxDisponibles as $creneau)
+                                            <option value="{{ $creneau }}">{{ $creneau }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                                <label class="flex items-center gap-3">
+                                    <input type="checkbox" wire:model.live="is_recurrent">
+                                    <span class="text-sm text-slate-700">Intervention récurrente</span>
+                                </label>
+
+                                @if($is_recurrent)
+                                    <select wire:model.defer="recurrence_rule" class="w-full rounded-2xl border-slate-300">
+                                        <option value="">Choisir une règle</option>
+                                        <option value="weekly">Chaque semaine</option>
+                                        <option value="biweekly">Toutes les 2 semaines</option>
+                                        <option value="monthly">Chaque mois</option>
+                                    </select>
+                                @endif
+
+                                <label class="flex items-center gap-3">
+                                    <input type="checkbox" wire:model.live="is_favorite_slot">
+                                    <span class="text-sm text-slate-700">Enregistrer ce créneau comme favori</span>
+                                </label>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($step === 5)
+                        <div class="space-y-6">
+                            @if(session()->has('success'))
+                                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-5 py-4">
+                                    {{ session('success') }}
+                                </div>
+                            @endif
+
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div><span class="text-slate-500">Service</span><p class="font-semibold">{{ $services[$service_type] ?? '-' }}</p></div>
+                                    <div><span class="text-slate-500">Lieu</span><p class="font-semibold">{{ $typesLieu[$type_lieu] ?? '-' }}</p></div>
+                                    <div><span class="text-slate-500">Fréquence</span><p class="font-semibold">{{ $frequences[$frequence] ?? '-' }}</p></div>
+                                    <div><span class="text-slate-500">Surface</span><p class="font-semibold">{{ $surfaces[$surface] ?? '-' }}</p></div>
+                                    <div><span class="text-slate-500">Adresse</span><p class="font-semibold">{{ $adresse ?: '-' }}</p></div>
+                                    <div><span class="text-slate-500">Ville</span><p class="font-semibold">{{ $ville ?: '-' }}</p></div>
+                                    <div><span class="text-slate-500">Date</span><p class="font-semibold">{{ $rdvDate ?: '-' }}</p></div>
+                                    <div><span class="text-slate-500">Heure</span><p class="font-semibold">{{ $rdvHeure ?: '-' }}</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="mt-10 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            @if($step > 1 && $step < 5)
+                                <button type="button" wire:click="previousStep" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">
+                                    Retour
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            @if($step < 4)
+                                <button type="button" wire:click="nextStep" class="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white">
+                                    Continuer
+                                </button>
+                            @endif
+
+                            @if($step === 4)
+                                <button type="button" wire:click="nextStep" class="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white">
+                                    Voir le résumé
+                                </button>
+                            @endif
+
+                            @if($step === 5)
+                                <button type="button" wire:click="validerRdv" class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white">
+                                    Confirmer ma demande
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Commentaire / détails utiles</label>
-            <textarea wire:model="commentaire_client" rows="4" class="w-full border-gray-300 rounded-lg shadow-sm"></textarea>
-            @error('commentaire_client') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-        </div>
+        <div class="xl:col-span-1">
+            <div class="sticky top-6 space-y-6">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <p class="text-sm font-medium text-slate-500">Résumé de votre demande</p>
+                    <h3 class="text-xl font-bold text-slate-900 mt-1">Estimation en direct</h3>
 
-        <div class="mt-4 flex justify-between">
-            <button wire:click="prevStep" class="text-sm text-gray-500 hover:underline">← Retour</button>
-            <button wire:click="nextStep" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Suivant →</button>
+                    <div class="mt-6 space-y-4">
+                        <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100">
+                            <p class="text-sm text-slate-500">Durée estimée</p>
+                            <p class="text-2xl font-bold text-slate-900 mt-1">
+                                {{ $duree_estimee > 0 ? $duree_estimee . ' min' : '--' }}
+                            </p>
+                        </div>
+
+                        <div class="rounded-2xl bg-sky-50 p-4 border border-sky-100">
+                            <p class="text-sm text-sky-700">Devis estimatif</p>
+                            <p class="text-3xl font-extrabold text-sky-900 mt-1">
+                                {{ number_format((float) $devis_estime, 2, ',', ' ') }} €
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Service</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ $services[$service_type] ?? '—' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Lieu</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ $typesLieu[$type_lieu] ?? '—' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Fréquence</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ $frequences[$frequence] ?? '—' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Surface</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ $surfaces[$surface] ?? '—' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Options</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ count($options_prestation) }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-slate-500">Zones</span>
+                                <span class="font-semibold text-slate-800 text-right">{{ count($zones_specifiques) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if(!$this->isPremiumClient())
+                    <div class="rounded-3xl border border-amber-200 bg-amber-50 p-6">
+                        <p class="text-sm font-semibold text-amber-800">Passez en Premium</p>
+                        <p class="text-sm text-amber-700 mt-2">
+                            Choisissez vos employés favoris et consultez leurs disponibilités.
+                        </p>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
-
-    <div x-show="step === 3" x-transition class="bg-white rounded-xl border shadow p-5 space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800">👤 Choisissez un employé</h3>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Employé</label>
-            <select wire:model="employe_id" class="w-full border-gray-300 rounded-lg shadow-sm">
-                <option value="">-- Sélectionnez un employé --</option>
-                @foreach($employes as $emp)
-                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                @endforeach
-            </select>
-            @error('employe_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        <div class="mt-4 flex justify-between">
-            <button wire:click="prevStep" class="text-sm text-gray-500 hover:underline">← Retour</button>
-            <button wire:click="nextStep" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Suivant →</button>
-        </div>
-    </div>
-
-    <div x-show="step === 4" x-transition class="bg-white rounded-xl border shadow p-5 space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800">📆 Sélectionnez votre créneau</h3>
-
-        @if($employe_id)
-            @livewire('client.calendrier-prise-rdv', [
-                'employe_id' => $employe_id,
-                'selectedDate' => $rdvDate,
-                'selectedHeure' => $rdvHeure,
-                'dureeEstimee' => $duree_estimee
-            ], key('calendar-'.$employe_id.'-'.$duree_estimee))
-        @endif
-
-        @error('rdvDate') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-        @error('rdvHeure') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-
-        <div class="mt-4 flex justify-between">
-            <button wire:click="prevStep" class="text-sm text-gray-500 hover:underline">← Retour</button>
-            <button wire:click="nextStep" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Suivant →</button>
-        </div>
-    </div>
-
-    <div x-show="step === 5" x-transition class="bg-white rounded-xl border shadow p-5 space-y-5">
-        <h3 class="text-lg font-semibold text-gray-800">✅ Confirmez votre demande</h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h4 class="font-semibold text-gray-800">🧽 Service</h4>
-                <p><span class="font-medium">Type :</span> {{ $services[$service_type] ?? '—' }}</p>
-                <p><span class="font-medium">Lieu :</span> {{ $typesLieux[$type_lieu] ?? '—' }}</p>
-                <p><span class="font-medium">Fréquence :</span> {{ $frequences[$frequence] ?? '—' }}</p>
-                <p><span class="font-medium">Surface :</span> {{ $surface ?: '—' }}</p>
-                <p><span class="font-medium">Durée estimée :</span> {{ $duree_estimee ? $duree_estimee . ' min' : '—' }}</p>
-                <p><span class="font-medium">Devis estimatif :</span> {{ $devis_estime ? number_format($devis_estime, 2, ',', ' ') . ' €' : '—' }}</p>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h4 class="font-semibold text-gray-800">📍 Adresse</h4>
-                <p><span class="font-medium">Adresse :</span> {{ $adresse ?: '—' }}</p>
-                <p><span class="font-medium">Ville :</span> {{ $ville ?: '—' }}</p>
-                <p><span class="font-medium">Code postal :</span> {{ $code_postal ?: '—' }}</p>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h4 class="font-semibold text-gray-800">👤 Intervention</h4>
-                <p><span class="font-medium">Employé :</span> {{ $employeNom ?: '—' }}</p>
-                <p><span class="font-medium">Date :</span> {{ $rdvDate ?: '—' }}</p>
-                <p><span class="font-medium">Heure :</span> {{ $rdvHeure ?: '—' }}</p>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h4 class="font-semibold text-gray-800">📝 Détails métier</h4>
-                <p><span class="font-medium">Options :</span> {{ !empty($options_prestation) ? implode(', ', $options_prestation) : '—' }}</p>
-                <p><span class="font-medium">Zones :</span> {{ !empty($zones_specifiques) ? implode(', ', $zones_specifiques) : '—' }}</p>
-                <p><span class="font-medium">Matériel :</span> {{ !empty($materiel_specifique) ? implode(', ', $materiel_specifique) : '—' }}</p>
-                <p><span class="font-medium">Récurrent :</span> {{ $is_recurrent ? 'Oui' : 'Non' }}</p>
-            </div>
-        </div>
-
-        <div class="mt-4 flex justify-between">
-            <button wire:click="prevStep" class="text-sm text-gray-500 hover:underline">← Modifier</button>
-            <button wire:click="validerRdv" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700">Confirmer la demande</button>
-        </div>
-    </div>
-
-    @if($rdvEnvoye)
-        <div
-            x-data="{ show: true }"
-            x-show="show"
-            x-transition.duration.500ms
-            x-init="setTimeout(() => show = false, 5000); $el.scrollIntoView({ behavior: 'smooth' })"
-            class="mt-6 bg-green-100 border border-green-300 text-green-800 text-center p-4 rounded-xl shadow">
-            🎉 Votre demande de nettoyage a été envoyée avec succès !
-        </div>
-    @endif
 </div>

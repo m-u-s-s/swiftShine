@@ -24,17 +24,19 @@ class CreateNewUser implements CreatesNewUsers
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => $this->passwordRules(),
-            'role' => ['required', 'string', Rule::in(['client', 'employe', 'societe', 'admin'])],
-            'tva_number' => ['required_if:role,societe'],
+            'role' => ['nullable', 'string', Rule::in(['client', 'employe', 'societe', 'admin'])],
+            'tva_number' => ['required_if:role,societe', 'nullable', 'string', 'max:255'],
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
         ])->validate();
+
+        $role = $input['role'] ?? 'client';
 
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
-            'role' => $input['role'],
-            'tva_number' => $input['role'] === 'societe' ? $input['tva_number'] : null,
+            'role' => $role,
+            'tva_number' => $role === 'societe' ? ($input['tva_number'] ?? null) : null,
         ]);
     }
 }

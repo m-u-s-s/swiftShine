@@ -1,323 +1,359 @@
 <div class="p-4 md:p-6 space-y-6">
-
     <x-active-sessions />
+    <x-toast />
 
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+    {{-- Header --}}
+    <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-blue-900">🎯 Mon espace client</h2>
-            <p class="text-sm text-gray-500">
-                Suivez vos missions, consultez les rapports et reprogrammez rapidement vos prochaines demandes.
+            <div class="flex items-center gap-3 flex-wrap">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-900">
+                    Bonjour {{ \Illuminate\Support\Str::before(auth()->user()->name, ' ') }}
+                </h2>
+
+                @if($isPremium)
+                <span class="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+                    ★ Premium
+                </span>
+                @else
+                <span class="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    Standard
+                </span>
+                @endif
+            </div>
+
+            <p class="text-sm text-slate-500 mt-2">
+                @if($isPremium)
+                Profitez de vos avantages premium et d’une expérience plus personnalisée.
+                @else
+                Gérez facilement vos prestations, votre historique et vos prochaines interventions.
+                @endif
             </p>
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <a
-                href="{{ route('home') }}"
-                class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
-            >
+            <a href="{{ route('client.rendezvous.create') }}"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition">
                 ➕ Nouveau rendez-vous
             </a>
+
+            <a href="{{ route('client.rendezvous.index') }}"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl border bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                📅 Mes rendez-vous
+            </a>
+
+            <a href="{{ route('client.historique') }}"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl border bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                🕘 Historique
+            </a>
+
+            @if($isPremium && count($favoriteEmployes))
+            <a href="{{ route('client.rendezvous.create') }}"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition">
+                ★ Réserver avec un favori
+            </a>
+            @endif
         </div>
     </div>
 
-    <x-toast />
-
+    {{-- KPI cards --}}
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <div class="bg-white p-4 rounded-xl shadow border">
-            <p class="text-sm text-gray-500">Total missions</p>
-            <p class="text-2xl font-bold text-slate-800">{{ $statsClient['total'] }}</p>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Total prestations</p>
+            <p class="text-2xl font-bold text-slate-800 mt-1">{{ $statsClient['total'] }}</p>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow border">
-            <p class="text-sm text-gray-500">À venir</p>
-            <p class="text-2xl font-bold text-blue-700">{{ $statsClient['avenir'] }}</p>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">À venir</p>
+            <p class="text-2xl font-bold text-sky-700 mt-1">{{ $statsClient['avenir'] }}</p>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow border">
-            <p class="text-sm text-gray-500">Terminées</p>
-            <p class="text-2xl font-bold text-emerald-700">{{ $statsClient['termine'] }}</p>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Terminées</p>
+            <p class="text-2xl font-bold text-emerald-700 mt-1">{{ $statsClient['termine'] }}</p>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow border">
-            <p class="text-sm text-gray-500">Feedbacks laissés</p>
-            <p class="text-2xl font-bold text-amber-600">{{ $statsClient['feedbacks'] }}</p>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Feedbacks laissés</p>
+            <p class="text-2xl font-bold text-amber-600 mt-1">{{ $statsClient['feedbacks'] }}</p>
         </div>
     </div>
 
-    @if($dernierRendezVous)
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div class="bg-gradient-to-r from-slate-900 to-slate-700 text-white rounded-2xl shadow p-5">
-                <p class="text-sm text-slate-300">Réservation rapide</p>
-                <h3 class="text-xl font-bold mt-1">Même service que la dernière fois</h3>
+    {{-- Prochain rdv + abonnement / upgrade --}}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <div class="flex items-center justify-between gap-3 mb-5">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500">Votre priorité</p>
+                        <h3 class="text-xl font-bold text-slate-900">Prochain rendez-vous</h3>
+                    </div>
 
-                <div class="mt-4 space-y-2 text-sm text-slate-200">
-                    <p><span class="font-medium text-white">Service :</span> {{ ucfirst(str_replace('_', ' ', $dernierRendezVous->service_type ?? '—')) }}</p>
-                    <p><span class="font-medium text-white">Adresse :</span> {{ $dernierRendezVous->adresse ?? '—' }}, {{ $dernierRendezVous->ville ?? '—' }}</p>
-                    <p><span class="font-medium text-white">Type :</span> {{ ucfirst($dernierRendezVous->type_lieu ?? '—') }}</p>
-                    <p><span class="font-medium text-white">Fréquence :</span> {{ ucfirst(str_replace('_', ' ', $dernierRendezVous->frequence ?? '—')) }}</p>
+                    @if($prochainRendezVous)
+                    <div class="flex items-center gap-2">
+                        <x-badge :status="$prochainRendezVous->status" />
+                        <x-priority-badge :priority="$prochainRendezVous->priorite" />
+                    </div>
+                    @endif
                 </div>
 
-                <div class="mt-4">
-                    <a
-                        href="{{ route('home') }}"
-                        class="inline-flex items-center px-4 py-2 rounded-lg bg-white text-slate-800 text-sm font-medium hover:bg-slate-100"
-                    >
-                        🔁 Reprendre une réservation similaire
+                @if($prochainRendezVous)
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                        <p class="text-sm text-slate-500">Service</p>
+                        <p class="text-lg font-bold text-slate-900 mt-1">
+                            {{ ucfirst(str_replace('_', ' ', $prochainRendezVous->service_type ?? '—')) }}
+                        </p>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                        <p class="text-sm text-slate-500">Date & heure</p>
+                        <p class="text-lg font-bold text-slate-900 mt-1">
+                            {{ $prochainRendezVous->date }} à {{ substr((string) $prochainRendezVous->heure, 0, 5) }}
+                        </p>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                        <p class="text-sm text-slate-500">Employé</p>
+                        <p class="text-lg font-bold text-slate-900 mt-1">
+                            {{ $prochainRendezVous->employe->name ?? 'À confirmer par notre équipe' }}
+                        </p>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                        <p class="text-sm text-slate-500">Adresse</p>
+                        <p class="text-lg font-bold text-slate-900 mt-1">
+                            {{ $prochainRendezVous->adresse ?? '—' }}, {{ $prochainRendezVous->ville ?? '—' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <a href="{{ route('client.rendezvous.index') }}"
+                        class="inline-flex items-center px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition">
+                        Voir le détail
+                    </a>
+
+                    @if(!in_array($prochainRendezVous->status, ['en_route', 'sur_place', 'termine', 'refuse']))
+                    <button type="button"
+                        wire:click="modifier({{ $prochainRendezVous->id }})"
+                        class="inline-flex items-center px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                        Modifier
+                    </button>
+
+                    <button type="button"
+                        wire:click="annuler({{ $prochainRendezVous->id }})"
+                        class="inline-flex items-center px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700 hover:bg-red-100 transition">
+                        Annuler
+                    </button>
+                    @endif
+                </div>
+                @else
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p class="text-slate-600 font-medium">Aucun rendez-vous à venir.</p>
+                    <p class="text-sm text-slate-500 mt-1">Planifiez une nouvelle prestation en quelques clics.</p>
+
+                    <a href="{{ route('client.rendezvous.create') }}"
+                        class="inline-flex items-center mt-4 px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition">
+                        Réserver maintenant
                     </a>
                 </div>
+                @endif
             </div>
+        </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow border">
-                <h3 class="text-lg font-semibold text-slate-800 mb-4">📍 Adresses récentes</h3>
+        <div class="space-y-6">
+            @if($isPremium)
+            <div class="bg-white rounded-3xl shadow-sm border border-amber-200 p-6">
+                <p class="text-sm font-medium text-amber-700">Abonnement Premium</p>
+                <h3 class="text-xl font-bold text-slate-900 mt-1">Plan actif</h3>
 
-                <div class="space-y-3">
+                <div class="mt-4 space-y-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500">Statut</span>
+                        <span class="font-semibold text-emerald-700">Actif</span>
+                    </div>
+
+                    @if($activeSubscription?->renewal_at)
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500">Renouvellement</span>
+                        <span class="font-semibold text-slate-800">
+                            {{ optional($activeSubscription->renewal_at)->format('d/m/Y') }}
+                        </span>
+                    </div>
+                    @elseif(auth()->user()->premium_renewal_at)
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500">Renouvellement</span>
+                        <span class="font-semibold text-slate-800">
+                            {{ optional(auth()->user()->premium_renewal_at)->format('d/m/Y') }}
+                        </span>
+                    </div>
+                    @endif
+                </div>
+
+                <div class="mt-5 rounded-2xl bg-amber-50 border border-amber-100 p-4">
+                    <p class="text-sm font-semibold text-amber-800">Vos avantages</p>
+                    <ul class="mt-2 space-y-2 text-sm text-amber-700">
+                        <li>• Choix des employés favoris</li>
+                        <li>• Visibilité sur les disponibilités</li>
+                        <li>• Expérience plus personnalisée</li>
+                    </ul>
+                </div>
+            </div>
+            @else
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <p class="text-sm font-medium text-slate-500">Passez au niveau supérieur</p>
+                <h3 class="text-xl font-bold text-slate-900 mt-1">Offre Premium mensuelle</h3>
+
+                <ul class="mt-4 space-y-2 text-sm text-slate-600">
+                    <li>• Choisissez vos employés favoris</li>
+                    <li>• Consultez leurs disponibilités</li>
+                    <li>• Réservez avec une expérience plus personnalisée</li>
+                </ul>
+
+                <a href="{{ route('premium.offer') }}"
+                    class="mt-5 inline-flex items-center px-4 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition">
+                    Découvrir l’offre Premium
+                </a>
+            </div>
+            @endif
+
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-lg font-bold text-slate-900">Adresses récentes</h3>
+
+                <div class="mt-4 space-y-3">
                     @forelse($adressesRecentes as $adresse)
-                        <div class="border rounded-xl p-3 bg-gray-50">
-                            <p class="font-medium text-gray-800">{{ $adresse->adresse }}</p>
-                            <p class="text-sm text-gray-600">{{ $adresse->ville ?? '—' }} {{ $adresse->code_postal ?? '' }}</p>
-                        </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="font-semibold text-slate-800">{{ $adresse->adresse }}</p>
+                        <p class="text-sm text-slate-500">{{ $adresse->ville ?? '—' }} {{ $adresse->code_postal ?? '' }}</p>
+                    </div>
                     @empty
-                        <div class="text-sm text-gray-500 italic">
-                            Aucune adresse récente.
-                        </div>
+                    <div class="text-sm text-slate-500 italic">
+                        Aucune adresse récente.
+                    </div>
                     @endforelse
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 
-    <div class="bg-white p-5 rounded-2xl shadow border">
-        <h3 class="text-lg font-semibold mb-4">📅 Mes missions à venir</h3>
+    {{-- Favoris / rebooking --}}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-gradient-to-r from-slate-900 to-slate-700 text-white rounded-3xl shadow-sm p-6">
+            <p class="text-sm text-slate-300">Réservation rapide</p>
+            <h3 class="text-xl font-bold mt-1">Même service que la dernière fois</h3>
+
+            @if($dernierRendezVous)
+            <div class="mt-4 space-y-2 text-sm text-slate-200">
+                <p><span class="font-semibold text-white">Service :</span> {{ ucfirst(str_replace('_', ' ', $dernierRendezVous->service_type ?? '—')) }}</p>
+                <p><span class="font-semibold text-white">Adresse :</span> {{ $dernierRendezVous->adresse ?? '—' }}, {{ $dernierRendezVous->ville ?? '—' }}</p>
+                <p><span class="font-semibold text-white">Type :</span> {{ ucfirst($dernierRendezVous->type_lieu ?? '—') }}</p>
+                <p><span class="font-semibold text-white">Fréquence :</span> {{ ucfirst(str_replace('_', ' ', $dernierRendezVous->frequence ?? '—')) }}</p>
+            </div>
+
+            <div class="mt-5">
+                <a href="{{ route('client.rendezvous.create') }}"
+                    class="inline-flex items-center px-4 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-semibold hover:bg-slate-100 transition">
+                    🔁 Reprendre une réservation similaire
+                </a>
+            </div>
+            @else
+            <p class="mt-4 text-sm text-slate-300">
+                Votre dernière prestation apparaîtra ici pour faciliter vos prochaines réservations.
+            </p>
+            @endif
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-lg font-bold text-slate-900">Employés favoris</h3>
+                @if($isPremium)
+                <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                    Premium
+                </span>
+                @endif
+            </div>
+
+            @if($isPremium)
+            <div class="mt-4 space-y-3">
+                @forelse($favoriteEmployes as $employe)
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="font-semibold text-slate-800">{{ $employe->name }}</p>
+                        <p class="text-sm text-slate-500">Employé favori</p>
+                    </div>
+
+                    <a href="{{ route('client.rendezvous.create') }}"
+                        class="text-sm font-semibold text-sky-600 hover:text-sky-700">
+                        Réserver
+                    </a>
+                </div>
+                @empty
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                    Aucun employé favori pour le moment.
+                </div>
+                @endforelse
+            </div>
+            @else
+            <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <p class="text-sm font-medium text-slate-700">Disponible avec l’offre Premium</p>
+                <p class="text-sm text-slate-500 mt-1">
+                    En Premium, vous pouvez sélectionner vos employés favoris et réserver plus facilement avec eux.
+                </p>
+            </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Liste des prochains rdv --}}
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Mes prochaines interventions</h3>
+                <p class="text-sm text-slate-500">Retrouvez vos prochains services planifiés.</p>
+            </div>
+
+            <a href="{{ route('client.rendezvous.index') }}"
+                class="text-sm font-semibold text-sky-600 hover:text-sky-700">
+                Voir tous mes rendez-vous
+            </a>
+        </div>
 
         <div class="space-y-4">
             @forelse($avenir as $rdv)
-                <div class="border rounded-2xl p-4 shadow-sm bg-gray-50 space-y-4">
-                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                        <div>
-                            <h4 class="font-semibold text-gray-800 text-lg">
-                                {{ ucfirst(str_replace('_', ' ', $rdv->service_type ?? 'Service non précisé')) }}
-                            </h4>
-                            <p class="text-sm text-gray-600">
-                                📅 {{ $rdv->date }} à {{ $rdv->heure }}
-                            </p>
-                            <p class="text-sm text-gray-600">
-                                🧑‍💼 {{ $rdv->employe->name ?? 'Employé à confirmer' }}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <x-badge :status="$rdv->status" />
-                            <x-priority-badge :priority="$rdv->priorite" />
-                        </div>
+            <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <div>
+                        <p class="font-semibold text-slate-900 text-lg">
+                            {{ ucfirst(str_replace('_', ' ', $rdv->service_type ?? 'Service non précisé')) }}
+                        </p>
+                        <p class="text-sm text-slate-600 mt-1">
+                            📅 {{ $rdv->date }} à {{ substr((string) $rdv->heure, 0, 5) }}
+                        </p>
+                        <p class="text-sm text-slate-600">
+                            📍 {{ $rdv->adresse ?? 'Adresse non précisée' }}, {{ $rdv->ville ?? '—' }}
+                        </p>
+                        <p class="text-sm text-slate-600">
+                            🧑‍💼 {{ $rdv->employe->name ?? 'Employé à confirmer' }}
+                        </p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-                        <div class="space-y-1">
-                            <p><span class="font-medium">Type de lieu :</span> {{ ucfirst($rdv->type_lieu ?? '—') }}</p>
-                            <p><span class="font-medium">Fréquence :</span> {{ ucfirst(str_replace('_', ' ', $rdv->frequence ?? '—')) }}</p>
-                            <p><span class="font-medium">Surface :</span> {{ $rdv->surface ?? '—' }}</p>
-                            <p><span class="font-medium">Durée estimée :</span> {{ $rdv->duree_estimee ? $rdv->duree_estimee . ' min' : '—' }}</p>
-                        </div>
-
-                        <div class="space-y-1">
-                            <p><span class="font-medium">Adresse :</span> {{ $rdv->adresse ?? '—' }}</p>
-                            <p><span class="font-medium">Ville :</span> {{ $rdv->ville ?? '—' }}</p>
-                            <p><span class="font-medium">Code postal :</span> {{ $rdv->code_postal ?? '—' }}</p>
-                            <p><span class="font-medium">Téléphone :</span> {{ $rdv->telephone_client ?? '—' }}</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white border rounded-xl p-4">
-                        <p class="text-sm font-semibold text-slate-800 mb-3">🧭 Suivi de mission</p>
-
-                        <div class="flex flex-wrap gap-2 text-xs">
-                            <span class="px-3 py-1 rounded-full {{ in_array($rdv->status, ['en_attente','confirme','en_route','sur_place','termine']) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500' }}">
-                                Demande reçue
-                            </span>
-                            <span class="px-3 py-1 rounded-full {{ in_array($rdv->status, ['confirme','en_route','sur_place','termine']) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
-                                Confirmée
-                            </span>
-                            <span class="px-3 py-1 rounded-full {{ in_array($rdv->status, ['en_route','sur_place','termine']) ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500' }}">
-                                En route
-                            </span>
-                            <span class="px-3 py-1 rounded-full {{ in_array($rdv->status, ['sur_place','termine']) ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500' }}">
-                                Sur place
-                            </span>
-                            <span class="px-3 py-1 rounded-full {{ $rdv->status === 'termine' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500' }}">
-                                Terminée
-                            </span>
-                        </div>
-                    </div>
-
-                    @if($rdv->commentaire_client)
-                        <div class="text-sm text-gray-700 bg-white border rounded-xl p-3">
-                            <span class="font-medium">Remarque :</span> {{ $rdv->commentaire_client }}
-                        </div>
-                    @endif
-
-                    @if(!empty($rdv->photos_reference))
-                        <div class="space-y-2">
-                            <p class="text-sm font-medium text-gray-700">📷 Photos de référence</p>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                @foreach($rdv->photos_reference as $photo)
-                                    <a href="{{ asset('storage/' . $photo) }}" target="_blank" class="block">
-                                        <img
-                                            src="{{ asset('storage/' . $photo) }}"
-                                            alt="Photo de référence"
-                                            class="w-full h-28 object-cover rounded-lg border hover:opacity-90 transition">
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    <div class="flex gap-3 text-sm">
-                        <button wire:click="modifier({{ $rdv->id }})" class="text-blue-600 underline">
-                            ✏️ Modifier
-                        </button>
-
-                        <button
-                            onclick="if(confirm('Confirmer l\\'annulation ?')) { $wire.annuler({{ $rdv->id }}) }"
-                            class="text-red-600 underline">
-                            ❌ Annuler
-                        </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-badge :status="$rdv->status" />
+                        <x-priority-badge :priority="$rdv->priorite" />
                     </div>
                 </div>
-            @empty
-                <div class="text-center italic text-gray-500 py-4">
-                    Aucun rendez-vous à venir.
-                </div>
-            @endforelse
-        </div>
-
-        <div class="mt-4">{{ $avenir->links() }}</div>
-    </div>
-
-    @if($editRdvId)
-        <div class="bg-yellow-50 p-4 border border-yellow-300 rounded-xl shadow">
-            <h4 class="font-semibold text-yellow-800 mb-3">✏️ Modifier le rendez-vous</h4>
-            <div class="flex gap-4 items-end flex-wrap">
-                <div>
-                    <label class="text-sm text-gray-700">Date</label>
-                    <input type="date" wire:model="editDate" class="text-sm border-gray-300 rounded px-2 py-1">
-                </div>
-                <div>
-                    <label class="text-sm text-gray-700">Heure</label>
-                    <input type="time" wire:model="editHeure" class="text-sm border-gray-300 rounded px-2 py-1">
-                </div>
-                <button wire:click="enregistrerModif" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">
-                    💾 Sauvegarder
-                </button>
-                <button wire:click="fermerEdition" class="text-sm text-gray-600 underline">
-                    Annuler
-                </button>
             </div>
-        </div>
-    @endif
-
-    <div class="bg-white p-5 rounded-2xl shadow border">
-        <h3 class="text-lg font-semibold mb-4">📜 Missions passées et rapports</h3>
-
-        <div class="space-y-4">
-            @forelse($passe as $rdv)
-                <div class="border rounded-2xl p-4 bg-gray-50 text-sm text-gray-700 space-y-4">
-                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                        <div>
-                            <p class="font-medium text-gray-800 text-lg">
-                                {{ ucfirst(str_replace('_', ' ', $rdv->service_type ?? 'Service non précisé')) }}
-                            </p>
-                            <p>{{ $rdv->date }} à {{ $rdv->heure }}</p>
-                            <p>🧑‍💼 {{ $rdv->employe->name ?? '—' }}</p>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <x-badge :status="$rdv->status" />
-                            <x-priority-badge :priority="$rdv->priorite" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <p><span class="font-medium">Adresse :</span> {{ $rdv->adresse ?? '—' }}, {{ $rdv->ville ?? '—' }}</p>
-                            <p><span class="font-medium">Type de lieu :</span> {{ ucfirst($rdv->type_lieu ?? '—') }}</p>
-                            <p><span class="font-medium">Durée estimée :</span> {{ $rdv->duree_estimee ? $rdv->duree_estimee . ' min' : '—' }}</p>
-                            <p><span class="font-medium">Durée réelle :</span> {{ $rdv->duree_reelle ? $rdv->duree_reelle . ' min' : '—' }}</p>
-                        </div>
-
-                        <div>
-                            <p><span class="font-medium">Fréquence :</span> {{ ucfirst(str_replace('_', ' ', $rdv->frequence ?? '—')) }}</p>
-                            <p><span class="font-medium">Surface :</span> {{ $rdv->surface ?? '—' }}</p>
-                        </div>
-                    </div>
-
-                    @if($rdv->commentaire_fin_mission)
-                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                            <span class="font-medium text-emerald-800">Rapport de fin d’intervention :</span>
-                            <p class="mt-1 text-emerald-900">{{ $rdv->commentaire_fin_mission }}</p>
-                        </div>
-                    @endif
-
-                    @if($rdv->feedback)
-                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                            <span class="font-medium text-amber-800">Votre feedback :</span>
-                            <p class="mt-1">Note : {{ $rdv->feedback->note ?? '—' }}/5</p>
-                            <p>{{ $rdv->feedback->commentaire ?? 'Aucun commentaire.' }}</p>
-
-                            @if($rdv->feedback->reponse_admin)
-                                <div class="mt-2 pt-2 border-t border-amber-200">
-                                    <span class="font-medium text-amber-800">Réponse admin :</span>
-                                    <p>{{ $rdv->feedback->reponse_admin }}</p>
-                                </div>
-                            @endif
-                        </div>
-                    @elseif($rdv->status === 'termine')
-                        <div class="text-sm">
-                            <a
-                                href="{{ route('feedback.create', $rdv->id) }}"
-                                class="text-blue-600 underline"
-                            >
-                                💬 Laisser un feedback
-                            </a>
-                        </div>
-                    @endif
-
-                    @if(!empty($rdv->photos_reference))
-                        <div class="space-y-2">
-                            <p class="text-sm font-medium text-gray-700">📷 Photos de référence</p>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                @foreach($rdv->photos_reference as $photo)
-                                    <a href="{{ asset('storage/' . $photo) }}" target="_blank" class="block">
-                                        <img
-                                            src="{{ asset('storage/' . $photo) }}"
-                                            alt="Photo de référence"
-                                            class="w-full h-28 object-cover rounded-lg border hover:opacity-90 transition">
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    @if(!empty($rdv->photos_apres))
-                        <div class="space-y-2">
-                            <p class="text-sm font-medium text-gray-700">📸 Photos après intervention</p>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                @foreach($rdv->photos_apres as $photo)
-                                    <a href="{{ asset('storage/' . $photo) }}" target="_blank" class="block">
-                                        <img
-                                            src="{{ asset('storage/' . $photo) }}"
-                                            alt="Photo après intervention"
-                                            class="w-full h-28 object-cover rounded-lg border hover:opacity-90 transition">
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
             @empty
-                <div class="text-center italic text-gray-500 py-4">
-                    Aucune intervention passée.
-                </div>
+            <div class="text-center italic text-slate-500 py-4">
+                Aucun rendez-vous à venir.
+            </div>
             @endforelse
         </div>
+
+        @if(method_exists($avenir, 'links'))
+        <div class="mt-6">
+            {{ $avenir->links() }}
+        </div>
+        @endif
     </div>
 </div>

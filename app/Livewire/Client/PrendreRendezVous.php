@@ -4,10 +4,9 @@ namespace App\Livewire\Client;
 
 use App\Models\RendezVous;
 use App\Models\User;
-use App\Notifications\NouveauRendezVousNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Livewire\Attributes\On;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -15,86 +14,99 @@ class PrendreRendezVous extends Component
 {
     use WithFileUploads;
 
-    public $step = 1;
+    public int $step = 1;
 
-    public $employe_id;
-    public $rdvDate;
-    public $rdvHeure;
-    public $rdvEnvoye = false;
+    public ?string $service_type = null;
+    public ?string $type_lieu = null;
+    public ?string $frequence = null;
+    public ?string $surface = null;
 
-    public $service_type;
-    public $adresse;
-    public $ville;
-    public $code_postal;
-    public $type_lieu;
-    public $surface;
-    public $frequence;
-    public $commentaire_client;
+    public array $options_prestation = [];
+    public array $zones_specifiques = [];
 
-    public $telephone_client;
-    public $presence_animaux = false;
-    public $acces_parking = false;
-    public $materiel_fournit = false;
-    public $priorite;
-    public $photos = [];
-    public $photos_reference = [];
-    public $duree_estimee = null;
-    public $devis_estime = null;
+    public ?string $materiel_specifique = null;
+    public ?string $commentaire_client = null;
 
-    public $options_prestation = [];
-    public $zones_specifiques = [];
-    public $materiel_specifique = [];
-    public $is_recurrent = false;
-    public $recurrence_rule = null;
-    public $is_favorite_slot = false;
+    public bool $presence_animaux = false;
+    public bool $acces_parking = false;
+    public bool $materiel_fournit = false;
 
-    public function getEmployesProperty()
+    public ?string $adresse = null;
+    public ?string $ville = null;
+    public ?string $code_postal = null;
+    public ?string $telephone_client = null;
+    public ?string $priorite = 'normale';
+
+    public ?int $employe_id = null;
+    public ?string $rdvDate = null;
+    public ?string $rdvHeure = null;
+
+    public bool $is_recurrent = false;
+    public ?string $recurrence_rule = null;
+    public bool $is_favorite_slot = false;
+
+    public array $photos = [];
+    public array $creneauxDisponibles = [];
+    public array $employesDisponibles = [];
+
+    public int $duree_estimee = 0;
+    public float $devis_estime = 0;
+
+    public function mount(): void
     {
-        return User::select('id', 'name')
-            ->where('role', 'employe')
-            ->get();
+        $this->chargerEmployesDisponibles();
+        $this->refreshEstimations();
     }
 
-    public function getEmployeNomProperty()
+    public function isPremiumClient(): bool
     {
-        return User::find($this->employe_id)?->name;
+        return Auth::check() && Auth::user()->canChooseEmployee();
     }
 
-    public function getServicesProperty()
+    public function getSurfacesProperty(): array
     {
         return [
-            'nettoyage_maison' => 'Nettoyage maison',
-            'nettoyage_appartement' => 'Nettoyage appartement',
-            'nettoyage_bureau' => 'Nettoyage bureau',
-            'nettoyage_vitres' => 'Nettoyage vitres',
-            'nettoyage_fin_chantier' => 'Nettoyage fin de chantier',
-            'nettoyage_apres_demenagement' => 'Nettoyage après déménagement',
-            'nettoyage_profond' => 'Nettoyage en profondeur',
+            'moins_50' => 'Moins de 50 m²',
+            '50_100' => '50 à 100 m²',
+            '100_150' => '100 à 150 m²',
+            '150_250' => '150 à 250 m²',
+            'plus_250' => 'Plus de 250 m²',
         ];
     }
 
-    public function getTypesLieuxProperty()
+    public function getServicesProperty(): array
     {
         return [
-            'maison' => 'Maison',
+            'nettoyage_standard' => 'Nettoyage standard',
+            'nettoyage_profond' => 'Nettoyage en profondeur',
+            'fin_de_chantier' => 'Nettoyage fin de chantier',
+            'fin_de_bail' => 'Nettoyage fin de bail',
+            'bureaux' => 'Nettoyage bureaux / professionnels',
+        ];
+    }
+
+    public function getTypesLieuxProperty(): array
+    {
+        return [
             'appartement' => 'Appartement',
+            'maison' => 'Maison',
             'bureau' => 'Bureau',
             'commerce' => 'Commerce',
             'autre' => 'Autre',
         ];
     }
 
-    public function getFrequencesProperty()
+    public function getFrequencesProperty(): array
     {
         return [
-            'une_fois' => 'Une seule fois',
+            'ponctuel' => 'Ponctuel',
             'hebdomadaire' => 'Hebdomadaire',
-            'bi_hebdomadaire' => 'Toutes les 2 semaines',
-            'mensuelle' => 'Mensuelle',
+            'bihebdomadaire' => 'Toutes les 2 semaines',
+            'mensuel' => 'Mensuel',
         ];
     }
 
-    public function getPrioritesProperty()
+    public function getPrioritesProperty(): array
     {
         return [
             'normale' => 'Normale',
@@ -103,267 +115,240 @@ class PrendreRendezVous extends Component
         ];
     }
 
-    public function getOptionsPrestationsDisponiblesProperty()
+    public function getOptionsDisponiblesProperty(): array
     {
         return [
             'vitres' => 'Vitres',
-            'four' => 'Four',
             'frigo' => 'Frigo',
+            'four' => 'Four',
             'repassage' => 'Repassage',
-            'sanitaires' => 'Sanitaires renforcés',
-            'poussiere_detail' => 'Poussière détaillée',
+            'desinfection' => 'Désinfection',
         ];
     }
 
-    public function getZonesDisponiblesProperty()
+    public function getZonesDisponiblesProperty(): array
     {
         return [
             'cuisine' => 'Cuisine',
-            'salon' => 'Salon',
             'salle_de_bain' => 'Salle de bain',
+            'salon' => 'Salon',
             'chambres' => 'Chambres',
+            'bureau' => 'Bureau',
             'escaliers' => 'Escaliers',
-            'terrasse' => 'Terrasse',
-            'garage' => 'Garage',
         ];
     }
 
-    public function getMaterielsDisponiblesProperty()
+    public function getEmployesProperty()
+    {
+        $query = User::query()
+            ->where('role', 'employe')
+            ->orderBy('name');
+
+        $employes = $query->get();
+
+        if (! $this->isPremiumClient() || ! Auth::check()) {
+            return $employes;
+        }
+
+        $favoriteIds = Auth::user()->favoriteEmployes()->pluck('users.id')->toArray();
+
+        $favorites = $employes->filter(fn ($e) => in_array($e->id, $favoriteIds));
+        $others = $employes->reject(fn ($e) => in_array($e->id, $favoriteIds));
+
+        return $favorites->concat($others)->values();
+    }
+
+    protected function rules(): array
     {
         return [
-            'produits_eco' => 'Produits écologiques',
-            'aspirateur_industriel' => 'Aspirateur industriel',
-            'produit_anti_calcaire' => 'Anti-calcaire',
-            'materiel_vitres' => 'Matériel vitres',
-            'desinfectant' => 'Désinfectant',
+            'service_type' => ['required', 'string', 'max:255'],
+            'type_lieu' => ['required', 'string', 'max:255'],
+            'frequence' => ['required', 'string', 'max:255'],
+            'surface' => ['required', Rule::in(array_keys($this->surfaces))],
+
+            'options_prestation' => ['nullable', 'array'],
+            'zones_specifiques' => ['nullable', 'array'],
+            'materiel_specifique' => ['nullable', 'string', 'max:255'],
+            'commentaire_client' => ['nullable', 'string', 'max:2000'],
+
+            'presence_animaux' => ['boolean'],
+            'acces_parking' => ['boolean'],
+            'materiel_fournit' => ['boolean'],
+
+            'adresse' => ['required', 'string', 'max:255'],
+            'ville' => ['required', 'string', 'max:255'],
+            'code_postal' => ['required', 'string', 'max:20'],
+            'telephone_client' => ['required', 'string', 'max:30'],
+            'priorite' => ['required', Rule::in(['normale', 'haute', 'urgente'])],
+
+            'employe_id' => $this->isPremiumClient()
+                ? ['required', 'exists:users,id']
+                : ['nullable'],
+
+            'rdvDate' => ['required', 'date'],
+            'rdvHeure' => ['required', 'date_format:H:i'],
+
+            'is_recurrent' => ['boolean'],
+            'recurrence_rule' => ['nullable', 'string', 'max:255'],
+            'is_favorite_slot' => ['boolean'],
+
+            'photos.*' => ['nullable', 'image', 'max:4096'],
         ];
     }
 
-    #[On('creneauChoisi')]
-    public function setCreneau($date, $heure)
+    public function nextStep(): void
     {
-        $this->rdvDate = $date;
-        $this->rdvHeure = $heure;
-    }
+        $this->resetErrorBag();
 
-    public function updatedPhotos()
-    {
-        $this->validate([
-            'photos.*' => ['image', 'max:4096'],
-        ]);
-    }
-
-    public function nextStep()
-    {
         if ($this->step === 1) {
-            $this->validate([
-                'service_type' => ['required', 'string'],
-                'type_lieu' => ['required', 'string'],
-                'frequence' => ['required', 'string'],
-                'surface' => ['required', 'string', 'max:255'],
-            ]);
-
-            $this->duree_estimee = $this->calculerDureeEstimee();
-            $this->devis_estime = $this->calculerDevisEstime();
+            $this->validateOnlyStep1();
         }
 
         if ($this->step === 2) {
-            $this->validate([
-                'adresse' => ['required', 'string', 'max:255'],
-                'ville' => ['required', 'string', 'max:255'],
-                'code_postal' => ['required', 'string', 'max:20'],
-                'telephone_client' => ['required', 'string', 'max:30'],
-                'priorite' => ['required', 'string'],
-                'commentaire_client' => ['nullable', 'string', 'max:1000'],
-                'photos.*' => ['nullable', 'image', 'max:4096'],
-            ]);
+            $this->validateOnlyStep2();
         }
 
-        if ($this->step === 3 && !$this->employe_id) {
-            $this->addError('employe_id', 'Veuillez choisir un employé.');
-            return;
+        if ($this->step === 3) {
+            $this->validateOnlyStep3();
         }
 
-        if ($this->step === 4 && (!$this->rdvDate || !$this->rdvHeure)) {
-            $this->addError('rdvDate', 'Veuillez choisir une date et une heure.');
-            return;
+        if ($this->step === 4) {
+            $this->validateOnlyStep4();
         }
 
         if ($this->step < 5) {
             $this->step++;
         }
+
+        $this->refreshEstimations();
+
+        if ($this->step === 4 || $this->step === 5) {
+            $this->chargerCreneauxDisponibles();
+        }
     }
 
-    public function prevStep()
+    public function previousStep(): void
     {
         if ($this->step > 1) {
             $this->step--;
         }
     }
 
-    public function removePhoto($index)
+    protected function validateOnlyStep1(): void
     {
-        if (isset($this->photos[$index])) {
-            unset($this->photos[$index]);
-            $this->photos = array_values($this->photos);
-        }
+        $this->validate([
+            'service_type' => ['required', 'string', 'max:255'],
+            'type_lieu' => ['required', 'string', 'max:255'],
+            'frequence' => ['required', 'string', 'max:255'],
+            'surface' => ['required', Rule::in(array_keys($this->surfaces))],
+        ]);
     }
 
-    public function validerRdv()
+    protected function validateOnlyStep2(): void
     {
-        if (!Auth::check()) {
-            $this->addError('rdvDate', 'Vous devez être connecté pour réserver un rendez-vous.');
-            return;
-        }
-
-        Gate::authorize('create', RendezVous::class);
-
         $this->validate([
-            'service_type' => ['required', 'string'],
-            'type_lieu' => ['required', 'string'],
-            'frequence' => ['required', 'string'],
-            'surface' => ['required', 'string', 'max:255'],
+            'options_prestation' => ['nullable', 'array'],
+            'zones_specifiques' => ['nullable', 'array'],
+            'materiel_specifique' => ['nullable', 'string', 'max:255'],
+            'commentaire_client' => ['nullable', 'string', 'max:2000'],
+            'presence_animaux' => ['boolean'],
+            'acces_parking' => ['boolean'],
+            'materiel_fournit' => ['boolean'],
+            'photos.*' => ['nullable', 'image', 'max:4096'],
+        ]);
+    }
+
+    protected function validateOnlyStep3(): void
+    {
+        $this->validate([
             'adresse' => ['required', 'string', 'max:255'],
             'ville' => ['required', 'string', 'max:255'],
             'code_postal' => ['required', 'string', 'max:20'],
             'telephone_client' => ['required', 'string', 'max:30'],
-            'priorite' => ['required', 'string'],
-            'commentaire_client' => ['nullable', 'string', 'max:1000'],
-            'employe_id' => ['required', 'exists:users,id'],
-            'rdvDate' => ['required', 'date'],
-            'rdvHeure' => ['required'],
-            'photos.*' => ['nullable', 'image', 'max:4096'],
-            'duree_estimee' => ['nullable', 'integer', 'min:30'],
-            'devis_estime' => ['nullable', 'numeric', 'min:0'],
+            'priorite' => ['required', Rule::in(['normale', 'haute', 'urgente'])],
         ]);
+    }
 
-        $existe = RendezVous::where('employe_id', $this->employe_id)
-            ->where('date', $this->rdvDate)
-            ->where('heure', $this->rdvHeure)
-            ->whereIn('status', ['confirme', 'en_attente', 'en_route', 'sur_place'])
-            ->exists();
+    protected function validateOnlyStep4(): void
+    {
+        $rules = [
+            'rdvDate' => ['required', 'date'],
+            'rdvHeure' => ['required', 'date_format:H:i'],
+            'is_recurrent' => ['boolean'],
+            'recurrence_rule' => ['nullable', 'string', 'max:255'],
+            'is_favorite_slot' => ['boolean'],
+        ];
 
-        if ($existe) {
-            $this->addError('rdvDate', 'Ce créneau vient d’être réservé. Veuillez en choisir un autre.');
+        if ($this->isPremiumClient()) {
+            $rules['employe_id'] = ['required', 'exists:users,id'];
+        }
+
+        $this->validate($rules);
+    }
+
+    public function updatedEmployeId(): void
+    {
+        if ($this->isPremiumClient()) {
+            $this->chargerCreneauxDisponibles();
+        }
+    }
+
+    public function updatedRdvDate(): void
+    {
+        $this->chargerCreneauxDisponibles();
+    }
+
+    public function updatedServiceType(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedSurface(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedOptionsPrestation(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    public function updatedFrequence(): void
+    {
+        $this->refreshEstimations();
+    }
+
+    protected function chargerEmployesDisponibles(): void
+    {
+        $this->employesDisponibles = $this->employes
+            ->map(fn ($employe) => [
+                'id' => $employe->id,
+                'name' => $employe->name,
+            ])->toArray();
+    }
+
+    protected function chargerCreneauxDisponibles(): void
+    {
+        $this->creneauxDisponibles = [];
+
+        if (! $this->rdvDate) {
             return;
         }
 
-        $storedPhotos = [];
+        $date = $this->rdvDate;
+        $slots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 
-        foreach ($this->photos as $photo) {
-            $storedPhotos[] = $photo->store('rendezvous/photos', 'public');
+        if ($this->isPremiumClient() && $this->employe_id) {
+            $slots = collect($slots)->filter(function ($heure) use ($date) {
+                return ! RendezVous::where('employe_id', $this->employe_id)
+                    ->where('date', $date)
+                    ->where('heure', $heure)
+                    ->whereIn('status', ['en_attente', 'confirme', 'en_route', 'sur_place'])
+                    ->exists();
+            })->values()->toArray();
         }
 
-        $rdv = RendezVous::create([
-            'client_id' => Auth::id(),
-            'employe_id' => $this->employe_id,
-            'date' => $this->rdvDate,
-            'heure' => $this->rdvHeure,
-            'status' => 'en_attente',
-            'service_type' => $this->service_type,
-            'adresse' => $this->adresse,
-            'ville' => $this->ville,
-            'code_postal' => $this->code_postal,
-            'type_lieu' => $this->type_lieu,
-            'surface' => $this->surface,
-            'frequence' => $this->frequence,
-            'is_recurrent' => $this->is_recurrent,
-            'recurrence_rule' => $this->is_recurrent ? $this->recurrence_rule : null,
-            'is_favorite_slot' => $this->is_favorite_slot,
-            'commentaire_client' => $this->commentaire_client,
-            'telephone_client' => $this->telephone_client,
-            'presence_animaux' => $this->presence_animaux,
-            'acces_parking' => $this->acces_parking,
-            'materiel_fournit' => $this->materiel_fournit,
-            'priorite' => $this->priorite,
-            'photos_reference' => $storedPhotos,
-            'options_prestation' => $this->options_prestation,
-            'zones_specifiques' => $this->zones_specifiques,
-            'materiel_specifique' => $this->materiel_specifique,
-            'duree_estimee' => $this->duree_estimee,
-            'devis_estime' => $this->devis_estime,
-        ]);
-
-        $rdv->load('client', 'employe');
-
-        if ($rdv->employe) {
-            $rdv->employe->notify(new NouveauRendezVousNotification($rdv));
-        }
-
-        $this->reset([
-            'step',
-            'employe_id',
-            'rdvDate',
-            'rdvHeure',
-            'service_type',
-            'adresse',
-            'ville',
-            'code_postal',
-            'type_lieu',
-            'surface',
-            'frequence',
-            'commentaire_client',
-            'telephone_client',
-            'presence_animaux',
-            'acces_parking',
-            'materiel_fournit',
-            'priorite',
-            'photos',
-            'photos_reference',
-            'duree_estimee',
-            'devis_estime',
-            'options_prestation',
-            'zones_specifiques',
-            'materiel_specifique',
-            'is_recurrent',
-            'recurrence_rule',
-            'is_favorite_slot',
-        ]);
-
-        $this->step = 1;
-        $this->rdvEnvoye = true;
-
-        $this->dispatch('toast', 'Votre demande de nettoyage a été enregistrée avec succès.', 'success');
-    }
-
-    public function updatedServiceType()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedTypeLieu()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedFrequence()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedSurface()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedPriorite()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedOptionsPrestation()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedZonesSpecifiques()
-    {
-        $this->refreshEstimations();
-    }
-
-    public function updatedMaterielSpecifique()
-    {
-        $this->refreshEstimations();
+        $this->creneauxDisponibles = $slots;
     }
 
     protected function refreshEstimations(): void
@@ -372,118 +357,141 @@ class PrendreRendezVous extends Component
         $this->devis_estime = $this->calculerDevisEstime();
     }
 
-    public function calculerDureeEstimee(): ?int
+    protected function calculerDureeEstimee(): int
     {
-        if (!$this->service_type || !$this->surface) {
-            return null;
-        }
-
-        $base = match ($this->service_type) {
-            'nettoyage_maison' => 120,
-            'nettoyage_appartement' => 90,
-            'nettoyage_bureau' => 120,
-            'nettoyage_vitres' => 60,
-            'nettoyage_fin_chantier' => 240,
-            'nettoyage_apres_demenagement' => 180,
-            'nettoyage_profond' => 210,
-            default => 90,
+        $baseMinutes = match ($this->service_type) {
+            'nettoyage_standard' => 120,
+            'nettoyage_profond' => 180,
+            'fin_de_chantier' => 240,
+            'fin_de_bail' => 240,
+            'bureaux' => 150,
+            default => 120,
         };
 
-        $surfaceText = strtolower(trim((string) $this->surface));
-        $surfaceMinutes = 0;
+        $surfaceMinutes = match ($this->surface) {
+            'moins_50' => 0,
+            '50_100' => 30,
+            '100_150' => 60,
+            '150_250' => 90,
+            'plus_250' => 120,
+            default => 0,
+        };
 
-        if (preg_match('/(\d+)/', $surfaceText, $matches)) {
-            $surfaceValue = (int) $matches[1];
+        $optionsMinutes = count($this->options_prestation) * 20;
+        $zonesMinutes = count($this->zones_specifiques) * 10;
+        $animauxMinutes = $this->presence_animaux ? 10 : 0;
 
-            if ($surfaceValue <= 50) {
-                $surfaceMinutes = 0;
-            } elseif ($surfaceValue <= 100) {
-                $surfaceMinutes = 30;
-            } elseif ($surfaceValue <= 150) {
-                $surfaceMinutes = 60;
-            } elseif ($surfaceValue <= 250) {
-                $surfaceMinutes = 90;
-            } else {
-                $surfaceMinutes = 120;
+        return $baseMinutes + $surfaceMinutes + $optionsMinutes + $zonesMinutes + $animauxMinutes;
+    }
+
+    protected function calculerDevisEstime(): float
+    {
+        $basePrice = match ($this->service_type) {
+            'nettoyage_standard' => 79,
+            'nettoyage_profond' => 129,
+            'fin_de_chantier' => 189,
+            'fin_de_bail' => 179,
+            'bureaux' => 149,
+            default => 79,
+        };
+
+        $surfacePrice = match ($this->surface) {
+            'moins_50' => 0,
+            '50_100' => 20,
+            '100_150' => 40,
+            '150_250' => 70,
+            'plus_250' => 100,
+            default => 0,
+        };
+
+        $optionsPrice = count($this->options_prestation) * 15;
+        $zonesPrice = count($this->zones_specifiques) * 8;
+        $premiumPrice = $this->isPremiumClient() ? 10 : 0;
+
+        $subtotal = $basePrice + $surfacePrice + $optionsPrice + $zonesPrice + $premiumPrice;
+
+        if ($this->frequence === 'hebdomadaire') {
+            $subtotal *= 0.92;
+        } elseif ($this->frequence === 'bihebdomadaire') {
+            $subtotal *= 0.95;
+        } elseif ($this->frequence === 'mensuel') {
+            $subtotal *= 0.97;
+        }
+
+        return round($subtotal, 2);
+    }
+
+    public function validerRdv(): void
+    {
+        Gate::authorize('create', RendezVous::class);
+
+        $this->validate();
+
+        if ($this->isPremiumClient() && $this->employe_id) {
+            $conflit = RendezVous::where('employe_id', $this->employe_id)
+                ->where('date', $this->rdvDate)
+                ->where('heure', $this->rdvHeure)
+                ->whereIn('status', ['en_attente', 'confirme', 'en_route', 'sur_place'])
+                ->exists();
+
+            if ($conflit) {
+                $this->addError('rdvHeure', 'Ce créneau n’est plus disponible pour cet employé.');
+                return;
             }
         }
 
-        $lieuMinutes = match ($this->type_lieu) {
-            'maison' => 20,
-            'bureau' => 30,
-            'commerce' => 25,
-            default => 0,
-        };
-
-        $frequenceAdjustment = match ($this->frequence) {
-            'hebdomadaire' => -15,
-            'bi_hebdomadaire' => 0,
-            'mensuelle' => 15,
-            'une_fois' => 20,
-            default => 0,
-        };
-
-        $prioriteAdjustment = match ($this->priorite) {
-            'urgente' => 15,
-            'haute' => 10,
-            default => 0,
-        };
-
-        $animauxAdjustment = $this->presence_animaux ? 10 : 0;
-        $optionsAdjustment = count($this->options_prestation ?? []) * 15;
-        $zonesAdjustment = count($this->zones_specifiques ?? []) * 10;
-        $materielAdjustment = count($this->materiel_specifique ?? []) * 5;
-
-        $total = $base
-            + $surfaceMinutes
-            + $lieuMinutes
-            + $frequenceAdjustment
-            + $prioriteAdjustment
-            + $animauxAdjustment
-            + $optionsAdjustment
-            + $zonesAdjustment
-            + $materielAdjustment;
-
-        return max($total, 30);
-    }
-
-    public function calculerDevisEstime(): ?float
-    {
-        if (!$this->duree_estimee) {
-            return null;
+        $photoPaths = [];
+        foreach ($this->photos as $photo) {
+            $photoPaths[] = $photo->store('rendezvous/references', 'public');
         }
 
-        $baseRate = match ($this->service_type) {
-            'nettoyage_vitres' => 32,
-            'nettoyage_fin_chantier' => 42,
-            'nettoyage_apres_demenagement' => 38,
-            'nettoyage_profond' => 40,
-            'nettoyage_bureau' => 35,
-            default => 30,
-        };
+        RendezVous::create([
+            'client_id' => Auth::id(),
+            'employe_id' => $this->isPremiumClient() ? $this->employe_id : null,
+            'date' => $this->rdvDate,
+            'heure' => $this->rdvHeure,
+            'service_type' => $this->service_type,
+            'type_lieu' => $this->type_lieu,
+            'frequence' => $this->frequence,
+            'surface' => $this->surface,
+            'adresse' => $this->adresse,
+            'ville' => $this->ville,
+            'code_postal' => $this->code_postal,
+            'telephone_client' => $this->telephone_client,
+            'priorite' => $this->priorite,
+            'commentaire_client' => $this->commentaire_client,
+            'options_prestation' => $this->options_prestation,
+            'zones_specifiques' => $this->zones_specifiques,
+            'materiel_specifique' => $this->materiel_specifique ? [$this->materiel_specifique] : [],
+            'presence_animaux' => $this->presence_animaux,
+            'acces_parking' => $this->acces_parking,
+            'materiel_fournit' => $this->materiel_fournit,
+            'is_recurrent' => $this->is_recurrent,
+            'recurrence_rule' => $this->recurrence_rule,
+            'is_favorite_slot' => $this->is_favorite_slot,
+            'photos_reference' => $photoPaths,
+            'duree_estimee' => $this->duree_estimee,
+            'devis_estime' => $this->devis_estime,
+            'status' => 'en_attente',
+        ]);
 
-        $hours = $this->duree_estimee / 60;
-        $amount = $hours * $baseRate;
-
-        $amount += count($this->options_prestation ?? []) * 12;
-        $amount += count($this->zones_specifiques ?? []) * 6;
-        $amount += $this->priorite === 'urgente' ? 25 : 0;
-
-        return round($amount, 2);
+        session()->flash('success', 'Votre demande a bien été envoyée.');
+        $this->dispatch('toast', 'Votre demande a bien été envoyée.', 'success');
+        $this->step = 5;
     }
 
     public function render()
     {
         return view('livewire.client.prendre-rendez-vous', [
-            'employes' => $this->employes,
-            'employeNom' => $this->employeNom,
+            'surfaces' => $this->surfaces,
             'services' => $this->services,
-            'typesLieux' => $this->typesLieux,
+            'typesLieu' => $this->typesLieux,
             'frequences' => $this->frequences,
             'priorites' => $this->priorites,
-            'optionsPrestationsDisponibles' => $this->optionsPrestationsDisponibles,
+            'optionsDisponibles' => $this->optionsDisponibles,
             'zonesDisponibles' => $this->zonesDisponibles,
-            'materielsDisponibles' => $this->materielsDisponibles,
+            'employesDisponibles' => $this->employesDisponibles,
+            'creneauxDisponibles' => $this->creneauxDisponibles,
         ])->layout('layouts.app');
     }
 }

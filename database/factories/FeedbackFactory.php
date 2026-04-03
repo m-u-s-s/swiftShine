@@ -13,7 +13,9 @@ class FeedbackFactory extends Factory
     public function definition(): array
     {
         return [
-            'rendez_vous_id' => RendezVous::factory()->confirme(),
+            'rendez_vous_id' => RendezVous::factory()->state([
+                'status' => 'termine'
+            ]),
             'client_id' => null,
             'note' => fake()->numberBetween(2, 5),
             'commentaire' => fake()->paragraph(1),

